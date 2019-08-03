@@ -1,0 +1,11 @@
+'scaleTier': 'BASIC'
+'pythonModule': 'trainer.task'
+'region': 'us-central1'
+'runtimeVersion': '1.13'
+'pythonVersion': '3.5'
+'jobDir': "gs://dev-bucket-00/models/custom_output"
+'packageUris':
+  - 'gs://dev-staging-bucket-00/custom_job_20190517_074124/01a060f16e2e09eb1ad06c84f101debf706365a5902352338f36237dca571f63/trainer-0.1.tar.gz'
+'args':
+  - '--train-files'
+  - 'gs://dev-bucket-00/datasets/N158_4G/train/numerai_training_158_4GL.csv'

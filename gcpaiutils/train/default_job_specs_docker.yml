@@ -1,0 +1,8 @@
+'scaleTier': 'BASIC'
+'region': 'us-central1'
+'modelDir': 'gs://dev-bucket-00/models/sklearn_model_test'
+'imageUri':
+  - 'gcr.io/num-00/sklearn_test:sklearn'
+'args':
+  - 'epochs'
+  - '1'
