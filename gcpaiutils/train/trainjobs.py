@@ -19,9 +19,14 @@ import subprocess
 import os
 
 
-# Load global variables from configuration file
+JOB_SPECS_GLOBAL_ARGS = ['SCALE_TIER', 'REGION', 'MODEL_DIR']
+JOB_SPECS_DEFAULT_ARGS = ['args', 'train_files']
+
+# Load globals and defaults
 with open('./config/config.yml', 'r') as stream:
     GLOBALS = safe_load(stream)
+with open('./config/defaults.yml', 'r') as stream:
+    DEFAULTS = safe_load(stream)
 
 
 class TrainJobHandler:
@@ -60,11 +65,11 @@ class TrainJobHandler:
         prefix = 'export PATH=/home/vagrant/google-cloud-sdk/bin:$PATH && '
         gcloud = 'gcloud beta ai-platform jobs submit training '
         name = job_spec['jobId'] + ' '
-        region = '--region ' + job_spec['trainingInput']['region'] + ' '
-        image = '--master-image-uri ' + job_spec['trainingInput']['imageUri'][0] + ' '
+        region = '--region ' + job_spec['trainingInput']['REGION'] + ' '
+        image = '--master-image-uri ' + job_spec['trainingInput']['IMAGE_URI'][0] + ' '
         pause = '-- '
-        modeldir = '--model-dir=' + job_spec['trainingInput']['modelDir'] + ' '
-        train_files = '--train-files=' + job_spec['trainingInput']['trainFiles'] + ' '
+        modeldir = '--model-dir=' + job_spec['trainingInput']['MODEL_DIR'] + ' '
+        train_files = '--train-files=' + job_spec['trainingInput']['train_files'] + ' '
 
         # User-defined args. Even position specify argument name. Odd positions argument values.
         user_defined_args = []
@@ -113,8 +118,13 @@ class JobSpecHandler:
 
     """
 
-    def __init__(self, project_name, train_inputs=None):
-
+    def __init__(self, algorithm=None, project_name=GLOBALS['PROJECT_NAME'], train_inputs={}):
+        self.algorithm = algorithm
+        self._train_inputs = train_inputs
+        try:
+            self._train_inputs['IMAGE_URI'] = GLOBALS['ATOMS'][self.algorithm]
+        except KeyError:
+            raise ValueError("Unknown algorithm")
         self._project_name = project_name
         self._train_inputs = train_inputs
         self.job_specs = None
@@ -131,20 +141,19 @@ class JobSpecHandler:
         minute = str(n.minute) if n.minute > 9 else '0' + str(n.minute)
         second = str(n.second) if n.second > 9 else '0' + str(n.second)
 
-        return self._train_inputs['scaleTier'].lower() + '_' + \
-               self._train_inputs['imageUri'][0].split("/")[-1].split(":")[1].lower() + '_' + \
+        return self._train_inputs['SCALE_TIER'].lower() + '_' + \
+               self._train_inputs['IMAGE_URI'][0].split("/")[-1].split(":")[1].lower() + '_' + \
                year + month + day + hour + minute + second
 
-    def training_inputs_from_yaml(self, file_path):
-        """Uploads training_inputs from YAML file and generates ready-to-submit specs."""
+    def create_job_specs(self):
 
-        with open(file_path, 'r') as stream:
-            self._train_inputs = safe_load(stream)
+        # Cast defaults if not found
+        for item in JOB_SPECS_GLOBAL_ARGS + JOB_SPECS_DEFAULT_ARGS:
+            if item in self._train_inputs:
+                continue
 
-    def create_job_specs(self, yaml_file_path=None):
-
-        if self._train_inputs is None and yaml_file_path is not None:  # cast defaults
-            self.training_inputs_from_yaml(yaml_file_path)
-        if self._train_inputs is None:
-            raise ValueError("At least one of yaml_train_inputs and train_inputs must not be None.")
+            if item in JOB_SPECS_GLOBAL_ARGS:
+                self._train_inputs[item] = GLOBALS[item]
+            else:
+                self._train_inputs[item] = DEFAULTS[self.algorithm][item]
         self.job_specs = {'jobId': self._generate_job_name(), 'trainingInput': self._train_inputs}

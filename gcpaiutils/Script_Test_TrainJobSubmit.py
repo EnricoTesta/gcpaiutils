@@ -1,10 +1,7 @@
 from gcpaiutils.train.trainjobs import TrainJobHandler, JobSpecHandler
-from os import getcwd
 
-PROJECT_NAME = "num-00"
+S = JobSpecHandler(algorithm='class_skl_logreg')
+S.create_job_specs()
 
-S = JobSpecHandler(PROJECT_NAME)
-S.create_job_specs(getcwd() + '/train/default_job_specs_docker.yml')
-
-T = TrainJobHandler(PROJECT_NAME)
+T = TrainJobHandler()
 T.submit_train_job(S.job_specs)
