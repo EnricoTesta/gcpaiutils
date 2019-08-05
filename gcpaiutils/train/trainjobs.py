@@ -20,12 +20,21 @@ import os
 
 
 # Load global variables from configuration file
-with open('config.yml', 'r') as stream:
+with open('./config/config.yml', 'r') as stream:
     GLOBALS = safe_load(stream)
 
 
 class TrainJobHandler:
+    """Builds train request for GCP AI Platform. Requires job specification as produced by JobSpecHandler.
 
+       Args:
+           - project_name: GCP project name
+           - job_executor: can be either 'gcloud' or 'mlapi'. The former leverages gcloud to submit train job while
+                           the latter uses google's discovery api.
+
+        Main usage:
+           - submit_train_job(): returns the object. Sends the job request (async) with the specified parameters.
+    """
     def __init__(self, project_name=GLOBALS['PROJECT_NAME'], job_executor='gcloud'):
         self._project_name = project_name
         self.job_executor = job_executor
@@ -55,8 +64,16 @@ class TrainJobHandler:
         image = '--master-image-uri ' + job_spec['trainingInput']['imageUri'][0] + ' '
         pause = '-- '
         modeldir = '--model-dir=' + job_spec['trainingInput']['modelDir'] + ' '
-        epochs = '--epochs=' + job_spec['trainingInput']['args'][1]
-        submit_cmd = prefix + gcloud + name + region + image + pause + modeldir + epochs
+        train_files = '--train-files=' + job_spec['trainingInput']['trainFiles'] + ' '
+
+        # User-defined args. Even position specify argument name. Odd positions argument values.
+        user_defined_args = []
+        for i, element in enumerate(job_spec['trainingInput']['args']):
+            if i % 2 == 0:  # argument name
+                user_defined_args.append('--' + element + '=' + str(job_spec['trainingInput']['args'][i+1]))
+
+        submit_cmd = prefix + gcloud + name + region + image + pause + \
+                     modeldir + train_files + ' '.join(user_defined_args)
         subprocess.run(submit_cmd, shell=True, check=True)
 
     def _exe_job_mlapi(self):
@@ -83,23 +100,24 @@ class TrainJobHandler:
 
 
 class JobSpecHandler:
+    """Builds job specifications to submit to GCP AI Platform. Specifications can be specified via a dictionary.
+    If dictionary is not provided the class fetches defaults from a configuration file.
 
-    def __init__(self, project_name):
+    Args:
+        - project_name: GCP project name
+        - train_inputs: a dict specifying ()
+
+    Main usage:
+        - create_job_specs(): returns the object with the job_specs property properly configured for a GCP AI
+          Platform request.
+
+    """
+
+    def __init__(self, project_name, train_inputs=None):
+
         self._project_name = project_name
-
-        self._train_inputs = None
+        self._train_inputs = train_inputs
         self.job_specs = None
-
-    def _generate_job_name_dev(self):
-        n = dt.now()
-        year = str(n.year)
-        month = str(n.month) if n.month > 9 else '0' + str(n.month)
-        day = str(n.day) if n.day > 9 else '0' + str(n.day)
-        hour = str(n.hour) if n.hour > 9 else '0' + str(n.hour)
-        minute = str(n.minute) if n.minute > 9 else '0' + str(n.minute)
-        second = str(n.second) if n.second > 9 else '0' + str(n.second)
-
-        return 'j' + year + month + day + hour + minute + second
 
     def _generate_job_name(self):
         """Generates jobId (mixed-case letters, numbers, and underscores only, starting with a letter).
@@ -113,9 +131,8 @@ class JobSpecHandler:
         minute = str(n.minute) if n.minute > 9 else '0' + str(n.minute)
         second = str(n.second) if n.second > 9 else '0' + str(n.second)
 
-        return self._train_inputs['scaleTier'] + '_' +\
-               self._train_inputs['modelDir'][0].split("/")[-1].split(".")[0].replace('-', '_') + '_' +\
-               str(self._train_inputs['args'][1]).split("/")[-1].split(".")[0] + "_" +\
+        return self._train_inputs['scaleTier'].lower() + '_' + \
+               self._train_inputs['imageUri'][0].split("/")[-1].split(":")[1].lower() + '_' + \
                year + month + day + hour + minute + second
 
     def training_inputs_from_yaml(self, file_path):
@@ -125,7 +142,8 @@ class JobSpecHandler:
             self._train_inputs = safe_load(stream)
 
     def create_job_specs(self, yaml_file_path=None):
-        if self._train_inputs is None and yaml_file_path is not None:
+
+        if self._train_inputs is None and yaml_file_path is not None:  # cast defaults
             self.training_inputs_from_yaml(yaml_file_path)
         if self._train_inputs is None:
             raise ValueError("At least one of yaml_train_inputs and train_inputs must not be None.")
