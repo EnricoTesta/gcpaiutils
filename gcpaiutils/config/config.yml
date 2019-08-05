@@ -1,2 +1,14 @@
 PROJECT_NAME: 'num-00'
 GOOGLE_APPLICATION_CREDENTIALS_JSON: ''
+SCALE_TIER: 'BASIC'
+REGION: 'us-central1'
+MODEL_DIR: 'gs://ml_train_deploy_test/'
+ATOMS:
+  class_skl_logreg:
+    - 'gcr.io/num-00/classification_sklearn_logisticregression:class_skl_logreg'
+  class_askl:
+    - 'gcr.io/num-00/classification_autosklearn:class_askl'
+  class_lgbm:
+    - 'gcr.io/num-00/classification_lgbm:class_lgbm'
+  class_xgb:
+    - 'gcr.io/num-00/classification_xgboost:class_xgb'
