@@ -1,8 +1,11 @@
 'scaleTier': 'BASIC'
 'region': 'us-central1'
-'modelDir': 'gs://dev-bucket-00/models/sklearn_model_test'
+'modelDir': 'gs://ml_train_deploy_test/'
+'trainFiles': 'gs://ml_train_deploy_test/sample_data/sample_data.csv'
 'imageUri':
-  - 'gcr.io/num-00/sklearn_test:sklearn'
+  - 'gcr.io/num-00/classification_sklearn_logisticregression:class_skl_logreg'
 'args':
-  - 'epochs'
-  - '1'
+  - 'C'
+  - '1.5'
+  - 'penalty'
+  - 'l2'
