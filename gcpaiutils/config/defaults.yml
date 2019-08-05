@@ -1,0 +1,13 @@
+class_skl_logreg:
+  train_files: 'gs://ml_train_deploy_test/sample_data/sample_data.csv'
+  args:
+    - 'C'
+    - '1.5'
+    - 'penalty'
+    - 'l2'
+class_askl:
+  -
+class_lgbm:
+  -
+class_xgb:
+  -
