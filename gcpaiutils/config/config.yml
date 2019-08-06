@@ -1,8 +1,8 @@
 PROJECT_NAME: 'num-00'
-GOOGLE_APPLICATION_CREDENTIALS_JSON: ''
-SCALE_TIER: 'BASIC'
-REGION: 'us-central1'
-MODEL_DIR: 'gs://ml_train_deploy_test/'
+GOOGLE_APPLICATION_CREDENTIALS_JSON: '/gauth/service_account_key.json'
+scaleTier: 'BASIC'
+region: 'us-central1'
+modelDir: 'gs://ml_train_deploy_test/'
 ATOMS:
   class_skl_logreg:
     - 'gcr.io/num-00/classification_sklearn_logisticregression:class_skl_logreg'

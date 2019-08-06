@@ -19,8 +19,8 @@ import subprocess
 import os
 
 
-JOB_SPECS_GLOBAL_ARGS = ['SCALE_TIER', 'REGION', 'MODEL_DIR']
-JOB_SPECS_DEFAULT_ARGS = ['args', 'train_files']
+JOB_SPECS_GLOBAL_ARGS = ['scaleTier', 'region', 'modelDir']
+JOB_SPECS_DEFAULT_ARGS = ['args', 'trainFiles']
 
 # Load globals and defaults
 with open('./config/config.yml', 'r') as stream:
@@ -65,11 +65,11 @@ class TrainJobHandler:
         prefix = 'export PATH=/home/vagrant/google-cloud-sdk/bin:$PATH && '
         gcloud = 'gcloud beta ai-platform jobs submit training '
         name = job_spec['jobId'] + ' '
-        region = '--region ' + job_spec['trainingInput']['REGION'] + ' '
-        image = '--master-image-uri ' + job_spec['trainingInput']['IMAGE_URI'][0] + ' '
+        region = '--region ' + job_spec['trainingInput']['region'] + ' '
+        image = '--master-image-uri ' + job_spec['trainingInput']['imageUri'][0] + ' '
         pause = '-- '
-        modeldir = '--model-dir=' + job_spec['trainingInput']['MODEL_DIR'] + ' '
-        train_files = '--train-files=' + job_spec['trainingInput']['train_files'] + ' '
+        modeldir = '--model-dir=' + job_spec['trainingInput']['modelDir'] + ' '
+        train_files = '--train-files=' + job_spec['trainingInput']['trainFiles'] + ' '
 
         # User-defined args. Even position specify argument name. Odd positions argument values.
         user_defined_args = []
@@ -92,6 +92,12 @@ class TrainJobHandler:
     def create_job_request(self, job_spec=None):
         if job_spec is None:
             raise ValueError("Must set job_spec to create a train job.")
+
+        # TODO: discover discovery API kwargs in order to submit train job (will allow monitoring)
+        job_spec['trainingInput']['image_URI'] = job_spec['trainingInput'].pop('imageUri')[0]  # convert to string
+        job_spec['trainingInput']['args'].append(['model-dir', job_spec['trainingInput'].pop('modelDir')])   # convert to string
+        job_spec['trainingInput']['args'].append(['train-files', job_spec['trainingInput'].pop('trainFiles')])  # convert to string
+
         self.success = None  # reset success flag
         self._auth_setup()
         self.mlapi = discovery.build('ml', 'v1', credentials=self._credentials)
@@ -122,7 +128,7 @@ class JobSpecHandler:
         self.algorithm = algorithm
         self._train_inputs = train_inputs
         try:
-            self._train_inputs['IMAGE_URI'] = GLOBALS['ATOMS'][self.algorithm]
+            self._train_inputs['imageUri'] = GLOBALS['ATOMS'][self.algorithm]
         except KeyError:
             raise ValueError("Unknown algorithm")
         self._project_name = project_name
@@ -141,8 +147,8 @@ class JobSpecHandler:
         minute = str(n.minute) if n.minute > 9 else '0' + str(n.minute)
         second = str(n.second) if n.second > 9 else '0' + str(n.second)
 
-        return self._train_inputs['SCALE_TIER'].lower() + '_' + \
-               self._train_inputs['IMAGE_URI'][0].split("/")[-1].split(":")[1].lower() + '_' + \
+        return self._train_inputs['scaleTier'].lower() + '_' + \
+               self._train_inputs['imageUri'][0].split("/")[-1].split(":")[1].lower() + '_' + \
                year + month + day + hour + minute + second
 
     def create_job_specs(self):
