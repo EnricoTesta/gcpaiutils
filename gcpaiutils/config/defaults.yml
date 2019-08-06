@@ -6,8 +6,25 @@ class_skl_logreg:
     - 'penalty'
     - 'l2'
 class_askl:
-  -
+  train_files: 'gs://ml_train_deploy_test/sample_data/sample_data.csv'
+  args:
+    - 'time_left_for_this_task'
+    - '60'
+    - 'ensemble_size'
+    - '10'
+    - 'ml_memory_limit'
+    - '100'
 class_lgbm:
-  -
+  train_files: 'gs://ml_train_deploy_test/sample_data/sample_data.csv'
+  args:
+    - 'n_estimators'
+    - '10'
+    - 'max_depth'
+    - '3'
 class_xgb:
-  -
+  train_files: 'gs://ml_train_deploy_test/sample_data/sample_data.csv'
+  args:
+    - 'n_estimators'
+    - '10'
+    - 'max_depth'
+    - '3'
