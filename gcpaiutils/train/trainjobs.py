@@ -147,9 +147,10 @@ class JobSpecHandler:
         minute = str(n.minute) if n.minute > 9 else '0' + str(n.minute)
         second = str(n.second) if n.second > 9 else '0' + str(n.second)
 
-        return self._train_inputs['scaleTier'].lower() + '_' + \
-               self._train_inputs['imageUri'][0].split("/")[-1].split(":")[1].lower() + '_' + \
-               year + month + day + hour + minute + second
+        # job name must start with a letter and string must be lowercase
+        return 'j' + year + month + day + hour + minute + second + '_' + \
+            self._train_inputs['imageUri'][0].split("/")[-1].split(":")[1].lower() + '_' + \
+            self._train_inputs['scaleTier'].lower()
 
     def create_job_specs(self):
 
@@ -162,4 +163,9 @@ class JobSpecHandler:
                 self._train_inputs[item] = GLOBALS[item]
             else:
                 self._train_inputs[item] = DEFAULTS[self.algorithm][item]
-        self.job_specs = {'jobId': self._generate_job_name(), 'trainingInput': self._train_inputs}
+
+        # Generate jobId
+        job_id = self._generate_job_name()
+
+        self._train_inputs['modelDir'] = self._train_inputs['modelDir'] + job_id + '/'
+        self.job_specs = {'jobId': job_id, 'trainingInput': self._train_inputs}
