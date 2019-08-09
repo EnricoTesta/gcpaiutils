@@ -1,14 +1,14 @@
-PROJECT_NAME: 'num-00'
+PROJECT_NAME: 'universal-trail-249303'
 GOOGLE_APPLICATION_CREDENTIALS_JSON: '/gauth/service_account_key.json'
 scaleTier: 'BASIC'
 region: 'us-central1'
-modelDir: 'gs://ml_train_deploy_test/'
+modelDir: 'gs://my_ml_test_bucket/'
 ATOMS:
   class_skl_logreg:
-    - 'gcr.io/num-00/classification_sklearn_logisticregression:class_skl_logreg'
+    - 'gcr.io/universal-trail-249303/classification_sklearn_logisticregression:class_skl_logreg'
   class_askl:
-    - 'gcr.io/num-00/classification_autosklearn:class_askl'
+    - 'gcr.io/universal-trail-249303/classification_autosklearn:class_askl'
   class_lgbm:
-    - 'gcr.io/num-00/classification_lgbm:class_lgbm'
+    - 'gcr.io/universal-trail-249303/classification_lgbm:class_lgbm'
   class_xgb:
-    - 'gcr.io/num-00/classification_xgboost:class_xgb'
+    - 'gcr.io/universal-trail-249303/classification_xgboost:class_xgb'
