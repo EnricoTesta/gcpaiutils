@@ -23,9 +23,9 @@ JOB_SPECS_GLOBAL_ARGS = ['scaleTier', 'region', 'modelDir']
 JOB_SPECS_DEFAULT_ARGS = ['args', 'trainFiles']
 
 # Load globals and defaults
-with open('./config/config.yml', 'r') as stream:
+with open('/gcpaiutils/config/deployment.yml', 'r') as stream:
     GLOBALS = safe_load(stream)
-with open('./config/defaults.yml', 'r') as stream:
+with open('/gcpaiutils/config/defaults.yml', 'r') as stream:
     DEFAULTS = safe_load(stream)
 
 
@@ -50,6 +50,7 @@ class TrainJobHandler:
         self.success = None
 
     def _auth_setup(self):
+        # TODO: do not use environment variables but instead build discovery api with auth file
         os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = GLOBALS['GOOGLE_APPLICATION_CREDENTIALS_JSON']
         self._credentials, self._project_id = google.auth.default()
 
