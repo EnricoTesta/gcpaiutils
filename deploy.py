@@ -22,10 +22,10 @@ class DeploymentHandler:
 
     def deploy(self, model_name, model_version, model_origin, region=DEPLOYMENT_GLOBALS["region"],
                runtime=str(DEPLOYMENT_GLOBALS["runtimeVersion"]),
-               python_version=str(DEPLOYMENT_GLOBALS["pythonVersion"])):
+               python_version=str(DEPLOYMENT_GLOBALS["pythonVersion"]), build_model=True):
         if model_version is None:
             raise TypeError("Must specify a model version as a string")
-        if model_name is not None:
+        if build_model:
             self.create_model(model_name, region)
         self.create_version(model_name, model_version, model_origin, runtime, python_version)
 
