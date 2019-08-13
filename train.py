@@ -27,7 +27,8 @@ with open('/gcpaiutils/config/deployment.yml', 'r') as stream:
     GLOBALS = safe_load(stream)
 with open('/gcpaiutils/config/defaults.yml', 'r') as stream:
     DEFAULTS = safe_load(stream)
-
+with open('/gcpaiutils/config/hypertune.yml', 'r') as stream:
+    HYPER = safe_load(stream)
 
 class TrainJobHandler:
     """Builds train request for GCP AI Platform. Requires job specification as produced by JobSpecHandler.
@@ -68,6 +69,10 @@ class TrainJobHandler:
         name = job_spec['jobId'] + ' '
         region = '--region ' + job_spec['trainingInput']['region'] + ' '
         image = '--master-image-uri ' + job_spec['trainingInput']['imageUri'][0] + ' '
+        if self.hypertune:
+            hyper = self.hypertune
+        else:
+            hyper = ''
         pause = '-- '
         modeldir = '--model-dir=' + job_spec['trainingInput']['modelDir'] + ' '
         train_files = '--train-files=' + job_spec['trainingInput']['trainFiles'] + ' '
@@ -125,7 +130,7 @@ class JobSpecHandler:
 
     """
 
-    def __init__(self, algorithm=None, project_name=GLOBALS['PROJECT_NAME'], train_inputs={}):
+    def __init__(self, algorithm=None, project_name=GLOBALS['PROJECT_NAME'], train_inputs={}, hypertune=False):
         self.algorithm = algorithm
         self._train_inputs = train_inputs
         try:
@@ -134,6 +139,10 @@ class JobSpecHandler:
             raise ValueError("Unknown algorithm")
         self._project_name = project_name
         self._train_inputs = train_inputs
+
+        if hypertune:
+            self.hypertune = HYPER[self.algorithm]  # fetch hyper-tune search space
+
         self.job_specs = None
 
     def _generate_job_name(self):
@@ -170,3 +179,21 @@ class JobSpecHandler:
 
         self._train_inputs['modelDir'] = self._train_inputs['modelDir'] + job_id + '/'
         self.job_specs = {'jobId': job_id, 'trainingInput': self._train_inputs}
+
+
+# TODO: switch to discovery API to submit train requests. This way you can add an HyperparameterSpec object to the dict
+"""
+# Job Request with HPT
+export BUCKET_NAME=ml_train_deploy_test
+export MODEL_DIR=sklearn_model_$(date +%Y%m%d_%H%M%S)
+export REGION=us-central1
+export JOB_NAME=custom_container_job_$(date +%Y%m%d_%H%M%S)
+
+gcloud beta ai-platform jobs submit training $JOB_NAME \
+  --region $REGION \
+  --master-image-uri $IMAGE_URI \
+  --config /Numerai_2.0/mlatoms/ht_config.yml \
+  -- \
+  --model-dir=gs://$BUCKET_NAME/$MODEL_DIR \
+  --train-files=gs://$BUCKET_NAME/sample_data/sample_data.csv
+"""
