@@ -8,11 +8,13 @@ pythonVersion: 3.5
 runtimeVersion: 1.14
 PREDICTION:
   class_skl_logreg:
-    uri: 'my_custom_code-0.1.tar.gz'
+    uri: 'sklearn-predictor-0.1.tar.gz'
     class: 'predictor.MyPredictor'
   class_askl: 'gcr.io/universal-trail-249303/classification_autosklearn:class_askl'
   class_lgbm: 'gcr.io/universal-trail-249303/classification_lgbm:class_lgbm'
-  class_xgb: 'gcr.io/universal-trail-249303/classification_xgboost:class_xgb'
+  class_xgb:
+    uri: 'xgb-predictor-0.1.tar.gz'
+    class: 'predictor.MyPredictor'
 ATOMS:
   class_skl_logreg:
     - 'gcr.io/universal-trail-249303/classification_sklearn_logisticregression:class_skl_logreg'

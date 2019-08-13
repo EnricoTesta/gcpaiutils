@@ -1,0 +1,17 @@
+class_skl_logreg:
+  trainingInput:
+    scaleTier: BASIC
+    hyperparameters:
+      goal: MAXIMIZE
+      hyperparameterMetricTag: "accuracy"
+      maxTrials: 10
+      maxParallelTrials: 2
+      enableTrialEarlyStopping: True
+      params:
+      - parameterName: C
+        type: DOUBLE
+        minValue: 0.1
+        maxValue: 10
+      - parameterName: penalty
+        type: CATEGORICAL
+        categoricalValues: ["l2", "l1"]
