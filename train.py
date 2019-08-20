@@ -45,6 +45,7 @@ class TrainJobHandler:
         self._project_name = project_name
         self.job_executor = job_executor
         self.mlapi = None
+        self.hypertune = False
         self._credentials = None
         self._project_id = None
         self.job_request = None
@@ -69,6 +70,11 @@ class TrainJobHandler:
         name = job_spec['jobId'] + ' '
         region = '--region ' + job_spec['trainingInput']['region'] + ' '
         image = '--master-image-uri ' + job_spec['trainingInput']['imageUri'][0] + ' '
+        scale = '--scale-tier ' + job_spec['trainingInput']['scaleTier'].lower() + ' '
+        if job_spec['trainingInput']['scaleTier'].lower() == 'custom':
+            master_machine_type = '--master-machine-type ' + job_spec['trainingInput']['masterType'] + ' '
+        else:
+            master_machine_type = ''
         if self.hypertune:
             hyper = self.hypertune
         else:
@@ -83,7 +89,7 @@ class TrainJobHandler:
             if i % 2 == 0:  # argument name
                 user_defined_args.append('--' + element + '=' + str(job_spec['trainingInput']['args'][i+1]))
 
-        submit_cmd = prefix + gcloud + name + region + image + pause + \
+        submit_cmd = prefix + gcloud + name + region + image + scale + master_machine_type + hyper + pause + \
                      modeldir + train_files + ' '.join(user_defined_args)
         subprocess.run(submit_cmd, shell=True, check=True)
 
