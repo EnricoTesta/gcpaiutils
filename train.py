@@ -30,6 +30,7 @@ with open('/gcpaiutils/config/defaults.yml', 'r') as stream:
 with open('/gcpaiutils/config/hypertune.yml', 'r') as stream:
     HYPER = safe_load(stream)
 
+
 class TrainJobHandler:
     """Builds train request for GCP AI Platform. Requires job specification as produced by JobSpecHandler.
 
@@ -164,9 +165,16 @@ class JobSpecHandler:
         second = str(n.second) if n.second > 9 else '0' + str(n.second)
 
         # job name must start with a letter and string must be lowercase
-        return 'j' + year + month + day + hour + minute + second + '_' + \
-            self._train_inputs['imageUri'][0].split("/")[-1].split(":")[1].lower() + '_' + \
-            self._train_inputs['scaleTier'].lower()
+        if self._train_inputs['trainFiles']:
+            shards = self._train_inputs['trainFiles'].split("/")  # 3 = subject / 4 = problem / 6 = version
+            return shards[3].lower() + '_' + shards[4].lower() + '_' + shards[6].lower() + '_' + \
+                   year + month + day + hour + minute + second + '_' + \
+                   self._train_inputs['imageUri'][0].split("/")[-1].split(":")[1].lower() + '_' + \
+                   self._train_inputs['scaleTier'].lower()
+        else:
+            return 'j_' + year + month + day + hour + minute + second + '_' + \
+                self._train_inputs['imageUri'][0].split("/")[-1].split(":")[1].lower() + '_' + \
+                self._train_inputs['scaleTier'].lower()
 
     def create_job_specs(self):
 
