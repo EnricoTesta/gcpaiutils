@@ -5,7 +5,8 @@ from utils import get_atom_name_from_dir
 import os
 
 # Read configuration file
-with open(os.getcwd() + "/config/deployment.yml", 'r') as stream:
+dir_path = os.path.dirname(os.path.realpath(__file__))
+with open(dir_path + "/config/deployment.yml", 'r') as stream:
     DEPLOYMENT_GLOBALS = safe_load(stream)
 
 
@@ -31,7 +32,7 @@ class DeploymentHandler:
 
     @staticmethod
     def create_model(model_name, region):
-        cmd = "gcloud ai-platform models create " + model_name + " --regions " + region
+        cmd = "gcloud ai-platform models create " + model_name + " --regions " + region + " --enable-logging"
         check_call(cmd, shell=True)
 
     @staticmethod

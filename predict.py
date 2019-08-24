@@ -27,7 +27,6 @@ class PredictionHandler:
 
     def predict_json(self, instances_dict):
         """Send json data to a deployed model for prediction.
-    ​
         Args:
             project (str): project where the Cloud ML Engine Model is deployed.
             model (str): model name.
