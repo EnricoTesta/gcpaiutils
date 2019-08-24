@@ -3,7 +3,8 @@ from yaml import safe_load
 import os
 
 # Read configuration file
-with open("/gcpaiutils/config/deployment.yml", 'r') as stream:
+dir_path = os.path.dirname(os.path.realpath(__file__))
+with open(dir_path + "/config/deployment.yml", 'r') as stream:
     DEPLOYMENT_GLOBALS = safe_load(stream)
 
 
