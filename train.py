@@ -93,6 +93,7 @@ class TrainJobHandler:
         submit_cmd = prefix + gcloud + name + region + image + scale + master_machine_type + hyper + pause + \
                      modeldir + train_files + ' '.join(user_defined_args)
         subprocess.run(submit_cmd, shell=True, check=True)
+        self.success = True
 
     def _exe_job_mlapi(self):
         try:
