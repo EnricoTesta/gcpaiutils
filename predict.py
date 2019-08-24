@@ -22,7 +22,12 @@ class PredictionHandler:
 
         # Set auth variable
         # TODO: do not use environment variables but instead build discovery api with auth file
-        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = self.credentials_json
+        try:
+            with open(self.credentials_json, 'r') as f:
+                pass
+            os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = self.credentials_json
+        except FileNotFoundError:
+            pass
 
         self._api = googleapiclient.discovery.build('ml', 'v1')
 
