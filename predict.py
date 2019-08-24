@@ -26,7 +26,7 @@ class PredictionHandler:
             with open(self.credentials_json, 'r') as f:
                 pass
             os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = self.credentials_json
-        except FileNotFoundError:
+        except:
             pass
 
         self._api = googleapiclient.discovery.build('ml', 'v1')
