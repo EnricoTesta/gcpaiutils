@@ -28,3 +28,8 @@ class_xgb:
     - '10'
     - 'max_depth'
     - '3'
+class_dummy:
+  trainFiles: 'gs://my_ml_test_bucket/sample_data/binary_classification_numeric_sample_data.csv'
+  args:
+    - 'strategy'
+    - 'prior'

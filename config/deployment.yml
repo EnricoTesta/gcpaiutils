@@ -24,3 +24,5 @@ ATOMS:
     - 'gcr.io/universal-trail-249303/classification_lgbm:class_lgbm'
   class_xgb:
     - 'gcr.io/universal-trail-249303/classification_xgboost:class_xgb'
+  class_dummy:
+    - 'gcr.io/universal-trail-249303/classification_dummy:class_dummy'
