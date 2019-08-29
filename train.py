@@ -146,9 +146,7 @@ class JobSpecHandler:
             raise ValueError("Unknown algorithm")
         self._project_name = project_name
         self._train_inputs = train_inputs
-
-        if hypertune:
-            self.hypertune = HYPER[self.algorithm]  # fetch hyper-tune search space
+        self.hypertune = hypertune
 
         self.job_specs = None
 
@@ -178,15 +176,23 @@ class JobSpecHandler:
 
     def create_job_specs(self):
 
+        spec_full_args = JOB_SPECS_GLOBAL_ARGS + JOB_SPECS_DEFAULT_ARGS
+        if self.hypertune:
+            spec_full_args += ['hyperparameters']
+
         # Cast defaults if not found
-        for item in JOB_SPECS_GLOBAL_ARGS + JOB_SPECS_DEFAULT_ARGS:
+        for item in spec_full_args:
             if item in self._train_inputs:
                 continue
 
             if item in JOB_SPECS_GLOBAL_ARGS:
                 self._train_inputs[item] = GLOBALS[item]
-            else:
+            elif item in JOB_SPECS_DEFAULT_ARGS:
                 self._train_inputs[item] = DEFAULTS[self.algorithm][item]
+            elif item in ['hyperparameters']:
+                self._train_inputs[item] = HYPER[self.algorithm]
+            else:
+                raise NotImplementedError("Unrecognized job spec argument %s" % item)
 
         # Generate jobId
         job_id = self._generate_job_name()
