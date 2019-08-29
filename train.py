@@ -107,10 +107,9 @@ class TrainJobHandler:
         if job_spec is None:
             raise ValueError("Must set job_spec to create a train job.")
 
-        # TODO: discover discovery API kwargs in order to submit train job (will allow monitoring)
-        job_spec['trainingInput']['image_URI'] = job_spec['trainingInput'].pop('imageUri')[0]  # convert to string
-        job_spec['trainingInput']['args'].append(['model-dir', job_spec['trainingInput'].pop('modelDir')])   # convert to string
-        job_spec['trainingInput']['args'].append(['train-files', job_spec['trainingInput'].pop('trainFiles')])  # convert to string
+        job_spec['trainingInput']['masterConfig'] = {'imageUri': job_spec['trainingInput'].pop('imageUri')[0]}
+        job_spec['trainingInput']['args'].append(['model-dir', job_spec['trainingInput'].pop('modelDir')])
+        job_spec['trainingInput']['args'].append(['train-files', job_spec['trainingInput'].pop('trainFiles')])
 
         self.success = None  # reset success flag
         self._auth_setup()
