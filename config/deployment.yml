@@ -1,5 +1,5 @@
 PROJECT_NAME: 'universal-trail-249303'
-GOOGLE_APPLICATION_CREDENTIALS_JSON: '/gauth/service_account_key.json'
+GOOGLE_APPLICATION_CREDENTIALS_JSON: '/gauth/mlengine_sa_y.json'
 scaleTier: 'BASIC'
 region: 'us-central1'
 coreBucket: 'gs://my_ml_test_bucket/'
