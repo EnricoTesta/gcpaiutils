@@ -1,12 +1,12 @@
 class_skl_logreg:
-  trainFiles: 'gs://my_customers_bucket/DUMMY/SAMPLES/TRAIN_DATA/MAIN/binary_classification_numeric_sample_data.csv'
+  trainFiles: 'gs://my_customers_bucket/DUMMY/SAMPLES/TRAIN_DATA/MAIN/'
   args:
     - 'C'
     - '1.5'
     - 'penalty'
     - 'l2'
 class_askl:
-  trainFiles: 'gs://my_customers_bucket/DUMMY/SAMPLES/TRAIN_DATA/MAIN/binary_classification_numeric_sample_data.csv'
+  trainFiles: 'gs://my_customers_bucket/DUMMY/SAMPLES/TRAIN_DATA/MAIN/'
   args:
     - 'time_left_for_this_task'
     - '60'
@@ -15,21 +15,21 @@ class_askl:
     - 'ml_memory_limit'
     - '100'
 class_lgbm:
-  trainFiles: 'gs://my_customers_bucket/DUMMY/SAMPLES/TRAIN_DATA/MAIN/binary_classification_numeric_sample_data.csv'
+  trainFiles: 'gs://my_customers_bucket/DUMMY/SAMPLES/TRAIN_DATA/MAIN/'
   args:
     - 'n_estimators'
     - '10'
     - 'max_depth'
     - '3'
 class_xgb:
-  trainFiles: 'gs://my_customers_bucket/DUMMY/SAMPLES/TRAIN_DATA/MAIN/binary_classification_numeric_sample_data.csv'
+  trainFiles: 'gs://my_customers_bucket/DUMMY/SAMPLES/TRAIN_DATA/MAIN/'
   args:
     - 'n_estimators'
     - '10'
     - 'max_depth'
     - '3'
 class_dummy:
-  trainFiles: 'gs://my_customers_bucket/DUMMY/SAMPLES/TRAIN_DATA/MAIN/binary_classification_numeric_sample_data.csv'
+  trainFiles: 'gs://my_customers_bucket/DUMMY/SAMPLES/TRAIN_DATA/MAIN/'
   args:
     - 'strategy'
     - 'prior'
