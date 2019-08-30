@@ -97,7 +97,7 @@ class TrainJobHandler:
 
     def _exe_job_mlapi(self):
         try:
-            self.job_request.execute()
+            self.job_request.execute()  # TODO: manage output (jobId, state, ...)
             self.success = True
         except errors.HttpError as err:
             logging.error(err._get_reason())
@@ -107,9 +107,13 @@ class TrainJobHandler:
         if job_spec is None:
             raise ValueError("Must set job_spec to create a train job.")
 
+        # Map job_spec information to docker entrypoint kwargs
         job_spec['trainingInput']['masterConfig'] = {'imageUri': job_spec['trainingInput'].pop('imageUri')[0]}
-        job_spec['trainingInput']['args'].append(['model-dir', job_spec['trainingInput'].pop('modelDir')])
-        job_spec['trainingInput']['args'].append(['train-files', job_spec['trainingInput'].pop('trainFiles')])
+        for idx, item in enumerate(job_spec['trainingInput']['args']):
+            if idx % 2 == 0:  # prefix argument name with '--' to match docker entrypoint kwargs names
+                job_spec['trainingInput']['args'][idx] = '--' + str(job_spec['trainingInput']['args'][idx])
+        job_spec['trainingInput']['args'] += ['--model-dir', job_spec['trainingInput'].pop('modelDir')]
+        job_spec['trainingInput']['args'] += ['--train-files', job_spec['trainingInput'].pop('trainFiles')]
 
         self.success = None  # reset success flag
         self._auth_setup()
