@@ -12,3 +12,18 @@ class_skl_logreg:
     - parameterName: penalty
       type: CATEGORICAL
       categoricalValues: ["l2", "l1"]
+class_xgb:
+  goal: MAXIMIZE
+  hyperparameterMetricTag: "accuracy"
+  maxTrials: 10
+  maxParallelTrials: 2
+  enableTrialEarlyStopping: True
+  params:
+    - parameterName: n_estimators
+      type: DOUBLE
+      minValue: 10
+      maxValue: 500
+    - parameterName: max_depth
+      type: DOUBLE
+      minValue: 1
+      maxValue: 20
