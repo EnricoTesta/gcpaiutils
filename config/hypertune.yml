@@ -20,10 +20,10 @@ class_xgb:
   enableTrialEarlyStopping: True
   params:
     - parameterName: n_estimators
-      type: DOUBLE
+      type: INTEGER
       minValue: 10
       maxValue: 500
     - parameterName: max_depth
-      type: DOUBLE
+      type: INTEGER
       minValue: 1
       maxValue: 20
