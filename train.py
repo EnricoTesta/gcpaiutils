@@ -136,5 +136,5 @@ class TrainJobSpecHandler(JobSpecHandler):
         # Generate jobId
         job_id = self._generate_job_name()
 
-        self._train_inputs['modelDir'] = self._train_inputs['modelDir'] + job_id + '/'
+        self._train_inputs['modelDir'] = self._train_inputs['modelDir'] + '_'.join(job_id.split("_")[1:]) + '/'
         self.job_specs = {'jobId': job_id, 'trainingInput': self._train_inputs}
