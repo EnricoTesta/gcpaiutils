@@ -26,4 +26,4 @@ class_xgb:
     - parameterName: max_depth
       type: INTEGER
       minValue: 1
-      maxValue: 20
+      maxValue: 10
