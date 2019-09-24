@@ -7,11 +7,12 @@ import os
 
 
 # Load globals and defaults
-with open('/gcpaiutils/config/deployment.yml', 'r') as stream:
+dir_path = os.path.dirname(os.path.realpath(__file__))
+with open(dir_path + "/config/deployment.yml", 'r') as stream:
     GLOBALS = safe_load(stream)
-with open('/gcpaiutils/config/defaults.yml', 'r') as stream:
+with open(dir_path + "/config/defaults.yml", 'r') as stream:
     DEFAULTS = safe_load(stream)
-with open('/gcpaiutils/config/hypertune.yml', 'r') as stream:
+with open(dir_path + "/config/hypertune.yml", 'r') as stream:
     HYPER = safe_load(stream)
 
 
