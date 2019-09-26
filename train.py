@@ -28,7 +28,7 @@ class TrainJobHandler(JobHandler):
         gcloud = 'gcloud beta ai-platform jobs submit training '
         name = job_spec['jobId'] + ' '
         region = '--region ' + job_spec['trainingInput']['region'] + ' '
-        image = '--master-image-uri ' + job_spec['trainingInput']['imageUri'][0] + ' '
+        image = '--master-image-uri ' + job_spec['trainingInput']['imageUri'] + ' '
         scale = '--scale-tier ' + job_spec['trainingInput']['scaleTier'].lower() + ' '
         if job_spec['trainingInput']['scaleTier'].lower() == 'custom':
             master_machine_type = '--master-machine-type ' + job_spec['trainingInput']['masterType'] + ' '
@@ -58,7 +58,7 @@ class TrainJobHandler(JobHandler):
             raise ValueError("Must set job_spec to create a train job.")
 
         # Map job_spec information to docker entrypoint kwargs
-        job_spec['trainingInput']['masterConfig'] = {'imageUri': job_spec['trainingInput'].pop('imageUri')[0]}
+        job_spec['trainingInput']['masterConfig'] = {'imageUri': job_spec['trainingInput'].pop('imageUri')}
         for idx, item in enumerate(job_spec['trainingInput']['args']):
             if idx % 2 == 0:  # prefix argument name with '--' to match docker entrypoint kwargs names
                 job_spec['trainingInput']['args'][idx] = '--' + str(job_spec['trainingInput']['args'][idx])
@@ -88,6 +88,10 @@ class TrainJobSpecHandler(JobSpecHandler):
 
     def __init__(self, algorithm=None, project_name=None, inputs={}, hypertune=False):
         super().__init__(algorithm, project_name, inputs)
+        try:
+            self.inputs["imageUri"] = GLOBALS['ATOMS'][self.algorithm][0]
+        except KeyError:
+            raise ValueError("Unknown algorithm")
         self._train_inputs = inputs
         self.hypertune = hypertune
 
