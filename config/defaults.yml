@@ -1,5 +1,9 @@
 class_skl_logreg:
   trainFiles: 'gs://my_customers_bucket/DUMMY/SAMPLES/TRAIN_DATA/MAIN/'
+  modelFile: 'gs://my_core_model_bucket/dummy_samples_main_20190924152858_class_skl_logreg_basic/model_20190924_153035_DhRJx91rmM.pkl'
+  scoreDir: 'gs://my_customers_bucket/DUMMY/SAMPLES/SCORE_DATA/MAIN/'
+  outputDir: 'gs://my_data_staging_bucket/'
+  useProba: '1'
   args:
     - 'C'
     - '1.5'
