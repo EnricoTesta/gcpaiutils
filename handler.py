@@ -86,10 +86,6 @@ class JobSpecHandler:
     def __init__(self, algorithm=None, project_name=GLOBALS['PROJECT_NAME'], inputs={}):
         self.algorithm = algorithm
         self.inputs = inputs
-        try:
-            self.inputs["imageUri"] = GLOBALS['ATOMS'][self.algorithm]
-        except KeyError:
-            raise ValueError("Unknown algorithm")
         self._project_name = project_name
         self.job_specs = None
 
