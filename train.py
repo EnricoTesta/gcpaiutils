@@ -56,6 +56,8 @@ class TrainJobHandler(JobHandler):
     def create_job_request(self, job_spec=None):
         if job_spec is None:
             raise ValueError("Must set job_spec to create a train job.")
+        if 'hyperparameters' in job_spec['trainingInput']:
+            self.hypertune = True
 
         # Map job_spec information to docker entrypoint kwargs
         job_spec['trainingInput']['masterConfig'] = {'imageUri': job_spec['trainingInput'].pop('imageUri')}
@@ -64,6 +66,8 @@ class TrainJobHandler(JobHandler):
                 job_spec['trainingInput']['args'][idx] = '--' + str(job_spec['trainingInput']['args'][idx])
         job_spec['trainingInput']['args'] += ['--model-dir', job_spec['trainingInput'].pop('modelDir')]
         job_spec['trainingInput']['args'] += ['--train-files', job_spec['trainingInput'].pop('trainFiles')]
+        if self.hypertune:
+            job_spec['trainingInput']['args'] += ['--hypertune-loss', job_spec['trainingInput'].pop('hypertuneLoss')]
 
         self.success = None  # reset success flag
         self._auth_setup()
@@ -121,7 +125,7 @@ class TrainJobSpecHandler(JobSpecHandler):
 
         spec_full_args = JOB_SPECS_GLOBAL_ARGS + JOB_SPECS_DEFAULT_ARGS
         if self.hypertune:
-            spec_full_args += ['hyperparameters']
+            spec_full_args += ['hyperparameters', 'hypertuneLoss']
 
         # Cast defaults if not found
         for item in spec_full_args:
@@ -132,8 +136,10 @@ class TrainJobSpecHandler(JobSpecHandler):
                 self._train_inputs[item] = GLOBALS[item]
             elif item in JOB_SPECS_DEFAULT_ARGS:
                 self._train_inputs[item] = DEFAULTS[self.algorithm][item]
-            elif item in ['hyperparameters']:
+            elif item == 'hyperparameters':
                 self._train_inputs[item] = HYPER[self.algorithm]
+            elif item == 'hypertuneLoss':
+                self._train_inputs[item] = self._train_inputs["hyperparameters"]["hyperparameterMetricTag"]
             else:
                 raise NotImplementedError("Unrecognized job spec argument %s" % item)
 
