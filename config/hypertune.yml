@@ -9,6 +9,7 @@ class_skl_logreg:
       type: DOUBLE
       minValue: 0.1
       maxValue: 10
+      scaleType: "UNIT_LOG_SCALE"
     - parameterName: penalty
       type: CATEGORICAL
       categoricalValues: ["l2", "l1"]
