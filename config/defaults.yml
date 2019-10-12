@@ -20,6 +20,10 @@ class_askl:
     - '100'
 class_lgbm:
   trainFiles: 'gs://my_customers_bucket/DUMMY/SAMPLES/TRAIN_DATA/MAIN/'
+  modelFile: 'gs://my_core_model_bucket/dummy_samples_main_20191012131614_class_lgbm_basic/model_20191012_131749_4gRVKLTRKB.pkl'
+  scoreDir: 'gs://my_customers_bucket/DUMMY/SAMPLES/SCORE_DATA/MAIN/'
+  outputDir: 'gs://my_data_staging_bucket/'
+  useProba: '1'
   args:
     - 'n_estimators'
     - '10'
@@ -27,6 +31,10 @@ class_lgbm:
     - '3'
 class_xgb:
   trainFiles: 'gs://my_customers_bucket/DUMMY/SAMPLES/TRAIN_DATA/MAIN/'
+  modelFile: 'gs://my_core_model_bucket/dummy_samples_main_20191012131540_class_xgb_basic/model_20191012_131710_HssSFxfmh5.pkl'
+  scoreDir: 'gs://my_customers_bucket/DUMMY/SAMPLES/SCORE_DATA/MAIN/'
+  outputDir: 'gs://my_data_staging_bucket/'
+  useProba: '1'
   args:
     - 'n_estimators'
     - '10'
@@ -37,3 +45,19 @@ class_dummy:
   args:
     - 'strategy'
     - 'prior'
+class_lda:
+  trainFiles: 'gs://my_customers_bucket/DUMMY/SAMPLES/TRAIN_DATA/MAIN/'
+  modelFile: 'gs://my_core_model_bucket/dummy_samples_main_20191012144034_class_lda_basic/model_20191012_144206_qFyhqYp1zj.pkl'
+  scoreDir: 'gs://my_customers_bucket/DUMMY/SAMPLES/SCORE_DATA/MAIN/'
+  outputDir: 'gs://my_data_staging_bucket/'
+  useProba: '1'
+  args:
+class_qda:
+  trainFiles: 'gs://my_customers_bucket/DUMMY/SAMPLES/TRAIN_DATA/MAIN/'
+  modelFile: 'gs://my_core_model_bucket/dummy_samples_main_20191012144045_class_qda_basic/model_20191012_144217_9Ks1DzsFLG.pkl'
+  scoreDir: 'gs://my_customers_bucket/DUMMY/SAMPLES/SCORE_DATA/MAIN/'
+  outputDir: 'gs://my_data_staging_bucket/'
+  useProba: '1'
+  args:
+    - 'reg-param'
+    - '0'

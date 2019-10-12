@@ -26,8 +26,18 @@ ATOMS:
     - 'gcr.io/universal-trail-249303/classification_xgboost:class_xgb'
   class_dummy:
     - 'gcr.io/universal-trail-249303/classification_dummy:class_dummy'
+  class_lda:
+    - 'gcr.io/universal-trail-249303/classification_lda:class_lda'
+  class_qda:
+    - 'gcr.io/universal-trail-249303/classification_qda:class_qda'
 SCORING:
   class_skl_logreg:
     - 'gcr.io/universal-trail-249303/scorer_sklearn:scorer_skl'
   class_xgb:
     - 'gcr.io/universal-trail-249303/scorer_xgboost:scorer_xgb'
+  class_lgbm:
+    - 'gcr.io/universal-trail-249303/scorer_lightgbm:scorer_lgbm'
+  class_lda:
+    - 'gcr.io/universal-trail-249303/scorer_sklearn:scorer_skl'
+  class_qda:
+    - 'gcr.io/universal-trail-249303/scorer_sklearn:scorer_skl'
