@@ -61,9 +61,12 @@ class TrainJobHandler(JobHandler):
 
         # Map job_spec information to docker entrypoint kwargs
         job_spec['trainingInput']['masterConfig'] = {'imageUri': job_spec['trainingInput'].pop('imageUri')}
-        for idx, item in enumerate(job_spec['trainingInput']['args']):
-            if idx % 2 == 0:  # prefix argument name with '--' to match docker entrypoint kwargs names
-                job_spec['trainingInput']['args'][idx] = '--' + str(job_spec['trainingInput']['args'][idx])
+        if job_spec['trainingInput']['args'] is None:
+            job_spec['trainingInput']['args'] = []
+        else:
+            for idx, item in enumerate(job_spec['trainingInput']['args']):
+                if idx % 2 == 0:  # prefix argument name with '--' to match docker entrypoint kwargs names
+                    job_spec['trainingInput']['args'][idx] = '--' + str(job_spec['trainingInput']['args'][idx])
         job_spec['trainingInput']['args'] += ['--model-dir', job_spec['trainingInput'].pop('modelDir')]
         job_spec['trainingInput']['args'] += ['--train-files', job_spec['trainingInput'].pop('trainFiles')]
         if self.hypertune:
