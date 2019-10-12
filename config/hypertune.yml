@@ -28,3 +28,29 @@ class_xgb:
       type: INTEGER
       minValue: 1
       maxValue: 10
+class_lgbm:
+  goal: MAXIMIZE
+  hyperparameterMetricTag: "accuracy"
+  maxTrials: 10
+  maxParallelTrials: 2
+  enableTrialEarlyStopping: True
+  params:
+    - parameterName: n_estimators
+      type: INTEGER
+      minValue: 10
+      maxValue: 500
+    - parameterName: max_depth
+      type: INTEGER
+      minValue: 1
+      maxValue: 10
+class_qda:
+  goal: MAXIMIZE
+  hyperparameterMetricTag: "accuracy"
+  maxTrials: 10
+  maxParallelTrials: 2
+  enableTrialEarlyStopping: True
+  params:
+    - parameterName: reg-param
+      type: DOUBLE
+      minValue: 0
+      maxValue: 1
