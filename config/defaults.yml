@@ -61,3 +61,17 @@ class_qda:
   args:
     - 'reg-param'
     - '0'
+encoder_str2int:
+  trainFiles: 'gs://my_customers_bucket/DUMMY/SAMPLES/TRAIN_DATA/MAIN/'
+  modelFile:
+  scoreDir: 'gs://my_customers_bucket/DUMMY/SAMPLES/SCORE_DATA/MAIN/'
+  outputDir: 'gs://my_data_staging_bucket/'
+  useProba: '1'
+  args:
+encoder_onehot:
+  trainFiles: 'gs://my_customers_bucket/DUMMY/SAMPLES/TRAIN_DATA/MAIN/'
+  modelFile:
+  scoreDir: 'gs://my_customers_bucket/DUMMY/SAMPLES/SCORE_DATA/MAIN/'
+  outputDir: 'gs://my_data_staging_bucket/'
+  useProba: '1'
+  args:

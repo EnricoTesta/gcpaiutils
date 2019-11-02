@@ -41,3 +41,8 @@ SCORING:
     - 'gcr.io/universal-trail-249303/scorer_sklearn:scorer_skl'
   class_qda:
     - 'gcr.io/universal-trail-249303/scorer_sklearn:scorer_skl'
+PREPROCESS:
+  encoder_str2int:
+    - 'gcr.io/universal-trail-249303/encoder_string2int:encoder_str2int'
+  encoder_onehot:
+    - 'gcr.io/universal-trail-249303/encoder_onehot:encoder_onehot'
