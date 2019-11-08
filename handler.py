@@ -21,7 +21,6 @@ class JobHandler:
         self.job_executor = job_executor
         self.mlapi = None
         self._credentials = credentials
-        self._project_id = None
         self.job_request = None
         self.success = None
 
