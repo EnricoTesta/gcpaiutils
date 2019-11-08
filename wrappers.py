@@ -5,21 +5,21 @@ from googleapiclient import discovery
 from google.cloud import storage
 from subprocess import check_call
 from shutil import rmtree
+from config.constants import GLOBALS
 import logging
-import google.auth
+from google.oauth2.service_account import Credentials
 from time import sleep
 import os
 
 logging.getLogger("OperatorsLogger")
 logging.getLogger("OperatorsLogger").setLevel(logging.INFO)
 
-CORE_MODEL_BUCKET = "gs://my_core_model_bucket"
 TIME_INTERVAL = 60*1
 
 # auth
-os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/gauth/mlengine_sa_y.json'
-credentials, project_id = google.auth.default()
-mlapi = discovery.build('ml', 'v1', credentials=credentials, cache_discovery=False)
+project_id = GLOBALS["PROJECT_ID"]
+ai_credentials = Credentials.from_service_account_file('/gauth/z-account-main-project-0-ai-platform-default.json')
+mlapi = discovery.build('ml', 'v1', credentials=ai_credentials, cache_discovery=False)
 
 
 def poll(time_interval, project_id, jobs):
@@ -51,7 +51,7 @@ def poll(time_interval, project_id, jobs):
     return status
 
 
-def train(atom=None, train_files=None, master_type=None, hyperspace=None, project_id=None, **kwargs):
+def train(atom=None, train_files=None, master_type=None, hyperspace=None, credentials=None, project_id=None, **kwargs):
 
     hypertune = hyperspace is not None
     trainingInput = {
@@ -68,10 +68,10 @@ def train(atom=None, train_files=None, master_type=None, hyperspace=None, projec
         current_train_input["hyperparameters"] = hyperspace[atom]
         current_train_input["hypertuneLoss"] = hyperspace[atom]["hyperparameterMetricTag"]
 
-    S = TrainJobSpecHandler(algorithm=atom, inputs=current_train_input,
+    S = TrainJobSpecHandler(project_id=project_id, algorithm=atom, inputs=current_train_input,
                             hypertune=hypertune)  # need copy to refresh args
     S.create_job_specs()
-    T = TrainJobHandler(job_executor='mlapi')
+    T = TrainJobHandler(credentials=credentials, project_id=project_id, job_executor='mlapi')
     T.submit_job(S.job_specs)
     if T.success:
         submitted_jobs.append(S.job_specs['jobId'])
@@ -107,8 +107,10 @@ def selection(train_task_ids=None, selector_class=None, **kwargs):
         # download in dir with job name
         tmp_dir_name = "{}/{}".format(info_dir, job.replace("train_", ""))
         os.mkdir(tmp_dir_name)
-        cmd = 'gsutil -m cp {}/{}/info_*.csv {}/{}'.format(CORE_MODEL_BUCKET, job.replace("train_", ""), info_dir,
-                                                          job.replace("train_", ""))
+        # TODO: need to configure gsutil with new deployment
+        cmd = 'gsutil -m cp {}/{}/info_*.csv {}/{}'.format(GLOBALS["MDOEL_BUCKET_ADDRESS"],
+                                                           job.replace("train_", ""), info_dir,
+                                                           job.replace("train_", ""))
         os.system(cmd)
 
         # concatenate file name to match GCS flat namespace
@@ -127,7 +129,7 @@ def selection(train_task_ids=None, selector_class=None, **kwargs):
 
 
 def score(selection_task_id=None, score_dir=None, use_proba=None, master_type=None, project_id=None,
-          subject=None, problem=None, version=None, **kwargs):
+          credentials=None, storage_credentials=None, subject=None, problem=None, version=None, **kwargs):
     task_instance = kwargs['task_instance']
     selected_info = task_instance.xcom_pull(task_ids=selection_task_id, key='selected_info')
 
@@ -146,16 +148,17 @@ def score(selection_task_id=None, score_dir=None, use_proba=None, master_type=No
         model_path = get_model_path_from_info_path(info)
 
         # Look for model in appropriate blob (temporary - assumes single model in blob)
-        storage_client = storage.Client()
-        blobs = list(storage_client.list_blobs("my_core_model_bucket", prefix=model_path))  # unique id
-        currentInput["modelFile"] = os.path.join(CORE_MODEL_BUCKET, blobs[0].name)
-        currentInput["outputDir"] = "gs://my_customers_bucket/{}/{}/RESULTS/{}/{}/".format(subject,
-                                                                                           problem, version,
-                                                                                           model_path.split("/")[0])
+        storage_client = storage.Client(credentials=storage_credentials)
+        blobs = list(storage_client.list_blobs(GLOBALS["MODEL_BUCKET_NAME"], prefix=model_path))  # unique id
+        currentInput["modelFile"] = os.path.join(GLOBALS["MDOEL_BUCKET_ADDRESS"], blobs[0].name)
+        currentInput["outputDir"] = "gs://{}/{}/{}/RESULTS/{}/{}/".format(GLOBALS["CORE_BUCKET_NAME"],
+                                                                          subject,
+                                                                          problem, version, model_path.split("/")[0])
 
-        S = ScoreJobSpecHandler(algorithm='_'.join(model_path.split("/")[0].split("_")[4:-1]), inputs=currentInput)
+        S = ScoreJobSpecHandler(algorithm='_'.join(model_path.split("/")[0].split("_")[4:-1]), project_id=project_id,
+                                inputs=currentInput)
         S.create_job_specs()
-        T = ScoreJobHandler(job_executor='mlapi')
+        T = ScoreJobHandler(credentials=credentials, project_id=project_id, job_executor='mlapi')
         T.submit_job(S.job_specs)
         if T.success:
             submitted_scoring_jobs[S.job_specs['jobId']] = model_path.split("/")[0]  # corresponding train job id
@@ -178,11 +181,12 @@ def score(selection_task_id=None, score_dir=None, use_proba=None, master_type=No
     os.mkdir(pred_dir)
 
     for _, train_job in successful_scoring_jobs.items():  # hp that all score jobs are successful and sorted
-        cmd = "gsutil cp gs://my_customers_bucket/{}/{}/RESULTS/{}/{}/results.csv {}/{}.csv".format(subject, problem,
-                                                                                                    version,
-                                                                                                    train_job,
-                                                                                                    pred_dir,
-                                                                                                    train_job)
+        cmd = "gsutil cp gs://{}/{}/{}/RESULTS/{}/{}/results.csv {}/{}.csv".format(GLOBALS["CORE_BUCKET_NAME"],
+                                                                                   subject, problem,
+                                                                                   version,
+                                                                                   train_job,
+                                                                                   pred_dir,
+                                                                                   train_job)
         check_call(cmd, shell=True)
 
     kwargs['task_instance'].xcom_push(key='pred_dir', value=pred_dir)

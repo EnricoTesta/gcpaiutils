@@ -1,6 +1,7 @@
 from googleapiclient import discovery
 from datetime import datetime as dt
-from handler import JobHandler, JobSpecHandler, GLOBALS, DEFAULTS, HYPER
+from config.constants import GLOBALS, DEPLOYMENT, DEFAULTS, HYPER
+from handler import JobHandler, JobSpecHandler
 import subprocess
 
 
@@ -19,8 +20,8 @@ class TrainJobHandler(JobHandler):
         Main usage:
            - submit_job(): returns the object. Sends the job request (async) with the specified parameters.
     """
-    def __init__(self, project_name=GLOBALS['PROJECT_NAME'], job_executor='gcloud'):
-        super().__init__(project_name, job_executor)
+    def __init__(self, credentials=None, project_id=None, job_executor=None):
+        super().__init__(credentials, project_id, job_executor)
         self.hypertune = False
 
     def _exe_job_gcloud(self, job_spec):
@@ -73,10 +74,9 @@ class TrainJobHandler(JobHandler):
             job_spec['trainingInput']['args'] += ['--hypertune-loss', job_spec['trainingInput'].pop('hypertuneLoss')]
 
         self.success = None  # reset success flag
-        self._auth_setup()
         self.mlapi = discovery.build('ml', 'v1', credentials=self._credentials)
         self.job_request = self.mlapi.projects().jobs().create(body=job_spec
-                                                               , parent='projects/{}'.format(self._project_name))
+                                                               , parent='projects/{}'.format(self._project_id))
 
 
 class TrainJobSpecHandler(JobSpecHandler):
@@ -93,10 +93,10 @@ class TrainJobSpecHandler(JobSpecHandler):
 
     """
 
-    def __init__(self, algorithm=None, project_name=None, inputs={}, hypertune=False):
-        super().__init__(algorithm, project_name, inputs)
+    def __init__(self, algorithm=None, project_id=None, inputs={}, hypertune=False):
+        super().__init__(algorithm, project_id, inputs)
         try:
-            self.inputs["imageUri"] = GLOBALS['ATOMS'][self.algorithm][0]
+            self.inputs["imageUri"] = DEPLOYMENT['ATOMS'][self.algorithm][0]
         except KeyError:
             raise ValueError("Unknown algorithm")
         self._train_inputs = inputs
@@ -136,7 +136,10 @@ class TrainJobSpecHandler(JobSpecHandler):
                 continue
 
             if item in JOB_SPECS_GLOBAL_ARGS:
-                self._train_inputs[item] = GLOBALS[item]
+                if item == "modelDir":
+                    self._train_inputs[item] = GLOBALS["MODEL_BUCKET_ADDRESS"]
+                else:
+                    self._train_inputs[item] = GLOBALS[item]
             elif item in JOB_SPECS_DEFAULT_ARGS:
                 self._train_inputs[item] = DEFAULTS[self.algorithm][item]
             elif item == 'hyperparameters':

@@ -1,8 +1,8 @@
 from googleapiclient import discovery
 from datetime import datetime as dt
-from handler import JobHandler, JobSpecHandler, GLOBALS, DEFAULTS
+from config.constants import GLOBALS, DEPLOYMENT, DEFAULTS
+from handler import JobHandler, JobSpecHandler
 import subprocess
-import os
 
 
 JOB_SPECS_GLOBAL_ARGS = ['scaleTier', 'region', 'modelDir']
@@ -20,8 +20,8 @@ class PreprocessJobHandler(JobHandler):
         Main usage:
            - submit_job(): returns the object. Sends the job request (async) with the specified parameters.
     """
-    def __init__(self, project_name=GLOBALS['PROJECT_NAME'], job_executor='gcloud'):
-        super().__init__(project_name, job_executor)
+    def __init__(self, credentials=None, project_id=None, job_executor=None):
+        super().__init__(credentials, project_id, job_executor)
 
     def _exe_job_gcloud(self, job_spec):
         prefix = 'export PATH=/home/vagrant/google-cloud-sdk/bin:$PATH && '
@@ -61,10 +61,9 @@ class PreprocessJobHandler(JobHandler):
         job_spec['trainingInput']['args'] += ['--train-files', job_spec['trainingInput'].pop('trainFiles')]
 
         self.success = None  # reset success flag
-        self._auth_setup()
         self.mlapi = discovery.build('ml', 'v1', credentials=self._credentials)
         self.job_request = self.mlapi.projects().jobs().create(body=job_spec
-                                                               , parent='projects/{}'.format(self._project_name))
+                                                               , parent='projects/{}'.format(self._project_id))
 
 
 class PreprocessJobSpecHandler(JobSpecHandler):
@@ -84,7 +83,7 @@ class PreprocessJobSpecHandler(JobSpecHandler):
     def __init__(self, algorithm=None, project_name=None, inputs={}):
         super().__init__(algorithm, project_name, inputs)
         try:
-            self.inputs["imageUri"] = GLOBALS['PREPROCESS'][self.algorithm][0]
+            self.inputs["imageUri"] = DEPLOYMENT['PREPROCESS'][self.algorithm][0]
         except KeyError:
             raise ValueError("Unknown algorithm")
         self._preprocess_inputs = inputs
@@ -121,7 +120,10 @@ class PreprocessJobSpecHandler(JobSpecHandler):
                 continue
 
             if item in JOB_SPECS_GLOBAL_ARGS:
-                self._preprocess_inputs[item] = GLOBALS[item]
+                if item == "modelDir":
+                    self._preprocess_inputs[item] = GLOBALS["MODEL_BUCKET_ADDRESS"]
+                else:
+                    self._preprocess_inputs[item] = GLOBALS[item]
             elif item in JOB_SPECS_DEFAULT_ARGS:
                 self._preprocess_inputs[item] = DEFAULTS[self.algorithm][item]
             else:

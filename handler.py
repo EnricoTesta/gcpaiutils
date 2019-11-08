@@ -1,19 +1,7 @@
 from googleapiclient import errors
-from yaml import safe_load
-import google.auth
+from google.oauth2.service_account import Credentials
+from config.constants import GLOBALS
 import logging
-import subprocess
-import os
-
-
-# Load globals and defaults
-dir_path = os.path.dirname(os.path.realpath(__file__))
-with open(dir_path + "/config/deployment.yml", 'r') as stream:
-    GLOBALS = safe_load(stream)
-with open(dir_path + "/config/defaults.yml", 'r') as stream:
-    DEFAULTS = safe_load(stream)
-with open(dir_path + "/config/hypertune.yml", 'r') as stream:
-    HYPER = safe_load(stream)
 
 
 class JobHandler:
@@ -27,19 +15,15 @@ class JobHandler:
         Main usage:
            - submit_job(): returns the object. Sends the job request (async) with the specified parameters.
     """
-    def __init__(self, project_name=GLOBALS['PROJECT_NAME'], job_executor='gcloud'):
-        self._project_name = project_name
+    def __init__(self, credentials=Credentials.from_service_account_file(GLOBALS["AI_PLATFORM_SA"]),
+                 project_id=GLOBALS['PROJECT_ID'], job_executor='mlapi'):
+        self._project_id = project_id
         self.job_executor = job_executor
         self.mlapi = None
-        self._credentials = None
+        self._credentials = credentials
         self._project_id = None
         self.job_request = None
         self.success = None
-
-    def _auth_setup(self):
-        # TODO: do not use environment variables but instead build discovery api with auth file
-        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = GLOBALS['GOOGLE_APPLICATION_CREDENTIALS_JSON']
-        self._credentials, self._project_id = google.auth.default()
 
     def _execute_job_request(self, job_spec):
         if self.job_executor == 'gcloud':
@@ -83,10 +67,10 @@ class JobSpecHandler:
 
     """
 
-    def __init__(self, algorithm=None, project_name=GLOBALS['PROJECT_NAME'], inputs={}):
+    def __init__(self, algorithm=None, project_id=GLOBALS['PROJECT_ID'], inputs={}):
         self.algorithm = algorithm
         self.inputs = inputs
-        self._project_name = project_name
+        self._project_id = project_id
         self.job_specs = None
 
     def _generate_job_name(self):
