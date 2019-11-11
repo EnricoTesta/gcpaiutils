@@ -18,7 +18,7 @@ TIME_INTERVAL = 60*1
 
 # auth
 project_id = GLOBALS["PROJECT_ID"]
-ai_credentials = Credentials.from_service_account_file('/gauth/z-account-main-project-0-ai-platform-default.json')
+ai_credentials = Credentials.from_service_account_file(GLOBALS["AI_PLATFORM_SA"])
 mlapi = discovery.build('ml', 'v1', credentials=ai_credentials, cache_discovery=False)
 
 

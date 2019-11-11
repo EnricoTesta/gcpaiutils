@@ -80,8 +80,8 @@ class PreprocessJobSpecHandler(JobSpecHandler):
 
     """
 
-    def __init__(self, algorithm=None, project_name=None, inputs={}):
-        super().__init__(algorithm, project_name, inputs)
+    def __init__(self, algorithm=None, project_id=None, inputs={}):
+        super().__init__(algorithm, project_id, inputs)
         try:
             self.inputs["imageUri"] = DEPLOYMENT['PREPROCESS'][self.algorithm][0]
         except KeyError:
