@@ -1,6 +1,6 @@
 from deploy import DeploymentHandler
 
-ORIGIN = "gs://my_core_model_bucket/j20190810141341_class_skl_logreg_basic/"
+ORIGIN = "gs://my_core_model_bucket/j20190813041413_class_xgb_basic/"
 
 d = DeploymentHandler()
-d.deploy(model_name="TestLogReg", model_version="V1", model_origin=ORIGIN)
+d.deploy(model_name="XGB_Final", model_version="V3", model_origin=ORIGIN, build_model=False)

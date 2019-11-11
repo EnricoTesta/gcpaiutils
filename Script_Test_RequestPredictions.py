@@ -1,7 +1,7 @@
 from predict import PredictionHandler
 
 
-MODEL = "TestLogReg"
+MODEL = "XGB_Final"
 CREDENTIALS_PATH = "/gcpaiutils/prediction_key_y.json"
 
 sample_inference_data = {"instances": [[0.62968,0.47129,0.34326,0.22883,0.38267],
@@ -13,7 +13,7 @@ sample_inference_data = {"instances": [[0.62968,0.47129,0.34326,0.22883,0.38267]
 [0.3259,0.54084,0.62009,0.42064,0.65099],
 [0.55276,0.32829,0.50054,0.51339,0.56894]], "probabilities": True}
 
-p = PredictionHandler(model=MODEL, credentials_json=CREDENTIALS_PATH)
+p = PredictionHandler(model=MODEL, version="V3", credentials_json=CREDENTIALS_PATH)
 
 for i in range(100):
     results = p.predict_json(sample_inference_data)
