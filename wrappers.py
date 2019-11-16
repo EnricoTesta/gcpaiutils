@@ -108,7 +108,7 @@ def selection(train_task_ids=None, selector_class=None, **kwargs):
         tmp_dir_name = "{}/{}".format(info_dir, job.replace("train_", ""))
         os.mkdir(tmp_dir_name)
         # TODO: need to configure gsutil with new deployment
-        cmd = 'gsutil -m cp {}/{}/info_*.csv {}/{}'.format(GLOBALS["MODEL_BUCKET_ADDRESS"],
+        cmd = 'gsutil -m cp {}{}/info_*.csv {}/{}'.format(GLOBALS["MODEL_BUCKET_ADDRESS"],
                                                            job.replace("train_", ""), info_dir,
                                                            job.replace("train_", ""))
         os.system(cmd)
@@ -148,7 +148,9 @@ def score(selection_task_id=None, score_dir=None, use_proba=None, master_type=No
         model_path = get_model_path_from_info_path(info)
 
         # Look for model in appropriate blob (temporary - assumes single model in blob)
-        storage_client = storage.Client(credentials=storage_credentials)
+        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = '/gauth/mlengine_sa_y.json'  # TODO: use OAuth2 credentials
+        # storage_client = storage.Client(credentials=storage_credentials)
+        storage_client = storage.Client()
         blobs = list(storage_client.list_blobs(GLOBALS["MODEL_BUCKET_NAME"], prefix=model_path))  # unique id
         currentInput["modelFile"] = os.path.join(GLOBALS["MODEL_BUCKET_ADDRESS"], blobs[0].name)
         currentInput["outputDir"] = "gs://{}/{}/{}/RESULTS/{}/{}/".format(GLOBALS["CORE_BUCKET_NAME"],
