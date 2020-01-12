@@ -1,3 +1,39 @@
+from yaml import safe_load
+from jinja2 import Template
+import os
+
+
+PATH = os.path.abspath(os.path.dirname(__file__))
+
+
+def get_deployment_config(file_path):
+    if not (isinstance(file_path, str)):
+        raise TypeError("deployment_config must be a string containing the absolute path to your "
+                        "deployment configuration YAML file")
+    with open(file_path, 'r') as f:
+        v = safe_load(f)
+    return v
+
+
+def get_deployment_constants(deployment_config):
+    with open('{}/deployment.yml'.format(PATH), 'r') as f:
+        data = f.read()
+    t = Template(data)
+    return safe_load(t.render(deployment_config))
+
+
+def get_defaults():
+    with open("{}/defaults.yml".format(PATH), 'r') as stream:
+        defaults = safe_load(stream)
+    return defaults
+
+
+def get_hyper():
+    with open("{}/hypertune.yml".format(PATH), 'r') as stream:
+        hyper = safe_load(stream)
+    return hyper
+
+
 def get_atom_name_from_dir(job_dir):
     job_name = job_dir.split("/")[-2]
     name_shards = job_name.split("_")

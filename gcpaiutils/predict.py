@@ -1,6 +1,5 @@
 from googleapiclient import discovery
 from datetime import datetime as dt
-from gcpaiutils.config.constants import GLOBALS, DEPLOYMENT, DEFAULTS
 from gcpaiutils.handler import JobHandler, JobSpecHandler
 import subprocess
 
@@ -13,15 +12,15 @@ class ScoreJobHandler(JobHandler):
     """Builds train request for GCP AI Platform. Requires job specification as produced by JobSpecHandler.
 
        Args:
-           - project_name: GCP project name
+           - deployment_config: string specifying deployment configuration YAML file absolute path
            - job_executor: can be either 'gcloud' or 'mlapi'. The former leverages gcloud to submit train job while
                            the latter uses google's discovery api.
 
         Main usage:
            - submit_job(): returns the object. Sends the job request (async) with the specified parameters.
     """
-    def __init__(self, credentials=None, project_id=None, job_executor=None):
-        super().__init__(credentials, project_id, job_executor)
+    def __init__(self, deployment_config, job_executor=None):
+        super().__init__(deployment_config, job_executor)
 
     def _exe_job_gcloud(self, job_spec):
         prefix = 'export PATH=/home/vagrant/google-cloud-sdk/bin:$PATH && '
@@ -77,10 +76,10 @@ class ScoreJobSpecHandler(JobSpecHandler):
 
     """
 
-    def __init__(self, algorithm=None, project_id=None, inputs={}):
-        super().__init__(algorithm, project_id, inputs)
+    def __init__(self, deployment_config, algorithm, inputs={}):
+        super().__init__(deployment_config, algorithm, inputs)
         try:
-            self.inputs["imageUri"] = DEPLOYMENT['SCORING'][self.algorithm][0]
+            self.inputs["imageUri"] = self._deployment['SCORING'][self.algorithm][0]
         except KeyError:
             raise ValueError("Unknown algorithm")
         self._score_inputs = inputs
@@ -117,9 +116,9 @@ class ScoreJobSpecHandler(JobSpecHandler):
                 continue
 
             if item in JOB_SPECS_GLOBAL_ARGS:
-                self._score_inputs[item] = GLOBALS[item]
+                self._score_inputs[item] = self._globals[item]
             elif item in JOB_SPECS_DEFAULT_ARGS:
-                self._score_inputs[item] = DEFAULTS[self.algorithm][item]
+                self._score_inputs[item] = self._defaults[self.algorithm][item]
             else:
                 raise NotImplementedError("Unrecognized job spec argument %s" % item)
 

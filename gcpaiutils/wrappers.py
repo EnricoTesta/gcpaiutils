@@ -1,11 +1,10 @@
 from gcpaiutils.train import TrainJobHandler, TrainJobSpecHandler
 from gcpaiutils.predict import ScoreJobHandler, ScoreJobSpecHandler
-from gcpaiutils.utils import get_model_path_from_info_path
+from gcpaiutils.utils import get_model_path_from_info_path, get_deployment_config
 from googleapiclient import discovery
 from google.cloud import storage
 from subprocess import check_call
 from shutil import rmtree
-from gcpaiutils.config.constants import GLOBALS
 import logging
 from google.oauth2.service_account import Credentials
 from time import sleep
@@ -17,18 +16,27 @@ logging.getLogger("OperatorsLogger").setLevel(logging.INFO)
 TIME_INTERVAL = 60*1
 
 # auth
-project_id = GLOBALS["PROJECT_ID"]
-ai_credentials = Credentials.from_service_account_file(GLOBALS["AI_PLATFORM_SA"])
-mlapi = discovery.build('ml', 'v1', credentials=ai_credentials, cache_discovery=False)
+# project_id = GLOBALS["PROJECT_ID"]
+# ai_credentials = Credentials.from_service_account_file(GLOBALS["AI_PLATFORM_SA"])
+# mlapi = discovery.build('ml', 'v1', credentials=ai_credentials, cache_discovery=False)
 
 
-def poll(time_interval, project_id, jobs):
+def poll(deployment_config, time_interval, jobs):
+
+    GLOBALS = get_deployment_config(deployment_config)
+    try:
+        ai_credentials = Credentials.from_service_account_file(GLOBALS["AI_PLATFORM_SA"])
+    except:
+        ai_credentials = None
+
+    mlapi = discovery.build('ml', 'v1', credentials=ai_credentials, cache_discovery=False)
+
     still_running = True
     while still_running:
         status = {}
         states = 1
         for job in jobs:
-            request = mlapi.projects().jobs().get(name='projects/' + project_id + '/jobs/' + job)
+            request = mlapi.projects().jobs().get(name='projects/' + GLOBALS["PROJECT_ID"] + '/jobs/' + job)
             counter = 0
             done = False
             while counter < 10 and done is False:
@@ -51,7 +59,7 @@ def poll(time_interval, project_id, jobs):
     return status
 
 
-def train(atom=None, train_files=None, master_type=None, hyperspace=None, credentials=None, project_id=None, **kwargs):
+def train(deployment_config, atom=None, train_files=None, master_type=None, hyperspace=None, **kwargs):
 
     hypertune = hyperspace is not None
     trainingInput = {
@@ -68,10 +76,10 @@ def train(atom=None, train_files=None, master_type=None, hyperspace=None, creden
         current_train_input["hyperparameters"] = hyperspace[atom]
         current_train_input["hypertuneLoss"] = hyperspace[atom]["hyperparameterMetricTag"]
 
-    S = TrainJobSpecHandler(project_id=project_id, algorithm=atom, inputs=current_train_input,
+    S = TrainJobSpecHandler(deployment_config=deployment_config, algorithm=atom, inputs=current_train_input,
                             hypertune=hypertune)  # need copy to refresh args
     S.create_job_specs()
-    T = TrainJobHandler(credentials=credentials, project_id=project_id, job_executor='mlapi')
+    T = TrainJobHandler(deployment_config=deployment_config, job_executor='mlapi')
     T.submit_job(S.job_specs)
     if T.success:
         submitted_jobs.append(S.job_specs['jobId'])
@@ -79,7 +87,7 @@ def train(atom=None, train_files=None, master_type=None, hyperspace=None, creden
     else:
         raise ValueError("Unable to submit train job.")
 
-    status = poll(TIME_INTERVAL, project_id, submitted_jobs)
+    status = poll(deployment_config, TIME_INTERVAL, submitted_jobs)
 
     successful_jobs = [job for job, s in status.items() if s == 'SUCCEEDED']
     failed_jobs = [job for job, s in status.items() if s == 'FAILED']
@@ -91,7 +99,10 @@ def train(atom=None, train_files=None, master_type=None, hyperspace=None, creden
     task_instance.xcom_push(key='successful_jobs', value=successful_jobs)
 
 
-def selection(train_task_ids=None, selector_class=None, **kwargs):
+def selection(deployment_config, train_task_ids=None, selector_class=None, **kwargs):
+
+    GLOBALS = get_deployment_config(deployment_config)
+
     successful_train_jobs = []
     for train_task in train_task_ids:
         successful_train_jobs.append(kwargs['task_instance'].xcom_pull(task_ids=train_task, key='successful_jobs'))
@@ -128,8 +139,8 @@ def selection(train_task_ids=None, selector_class=None, **kwargs):
     kwargs['task_instance'].xcom_push(key='selected_info', value=selected_info)
 
 
-def score(selection_task_id=None, score_dir=None, use_proba=None, master_type=None, project_id=None,
-          credentials=None, storage_credentials=None, subject=None, problem=None, version=None, **kwargs):
+def score(deployment_config, selection_task_id=None, score_dir=None, use_proba=None, master_type=None,
+          subject=None, problem=None, version=None, **kwargs):
     task_instance = kwargs['task_instance']
     selected_info = task_instance.xcom_pull(task_ids=selection_task_id, key='selected_info')
 
@@ -140,6 +151,7 @@ def score(selection_task_id=None, score_dir=None, use_proba=None, master_type=No
         "scaleTier": "CUSTOM"
     }
 
+    GLOBALS = get_deployment_config(deployment_config)
     submitted_scoring_jobs = {}
 
     for info in selected_info:
@@ -157,10 +169,11 @@ def score(selection_task_id=None, score_dir=None, use_proba=None, master_type=No
                                                                           subject,
                                                                           problem, version, model_path.split("/")[0])
 
-        S = ScoreJobSpecHandler(algorithm='_'.join(model_path.split("/")[0].split("_")[4:-1]), project_id=project_id,
+        S = ScoreJobSpecHandler(algorithm='_'.join(model_path.split("/")[0].split("_")[4:-1]),
+                                deployment_config=deployment_config,
                                 inputs=currentInput)
         S.create_job_specs()
-        T = ScoreJobHandler(credentials=credentials, project_id=project_id, job_executor='mlapi')
+        T = ScoreJobHandler(deployment_config=deployment_config, job_executor='mlapi')
         T.submit_job(S.job_specs)
         if T.success:
             submitted_scoring_jobs[S.job_specs['jobId']] = model_path.split("/")[0]  # corresponding train job id
@@ -169,7 +182,7 @@ def score(selection_task_id=None, score_dir=None, use_proba=None, master_type=No
             raise ValueError("Unable to submit score job.")
 
     # Retrieve scoring
-    status = poll(TIME_INTERVAL, project_id, submitted_scoring_jobs)
+    status = poll(deployment_config, TIME_INTERVAL, submitted_scoring_jobs)
     successful_scoring_jobs = {}
     for job, s in status.items():
         if s == 'SUCCEEDED':

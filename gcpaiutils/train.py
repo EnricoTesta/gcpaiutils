@@ -1,6 +1,5 @@
 from googleapiclient import discovery
 from datetime import datetime as dt
-from gcpaiutils.config.constants import GLOBALS, DEPLOYMENT, DEFAULTS, HYPER
 from gcpaiutils.handler import JobHandler, JobSpecHandler
 import subprocess
 
@@ -13,15 +12,15 @@ class TrainJobHandler(JobHandler):
     """Builds train request for GCP AI Platform. Requires job specification as produced by JobSpecHandler.
 
        Args:
-           - project_name: GCP project name
+           - deployment_config: string specifying deployment configuration YAML file absolute path
            - job_executor: can be either 'gcloud' or 'mlapi'. The former leverages gcloud to submit train job while
                            the latter uses google's discovery api.
 
         Main usage:
            - submit_job(): returns the object. Sends the job request (async) with the specified parameters.
     """
-    def __init__(self, credentials=None, project_id=None, job_executor=None):
-        super().__init__(credentials, project_id, job_executor)
+    def __init__(self, deployment_config, job_executor=None):
+        super().__init__(deployment_config, job_executor)
         self.hypertune = False
 
     def _exe_job_gcloud(self, job_spec):
@@ -93,10 +92,10 @@ class TrainJobSpecHandler(JobSpecHandler):
 
     """
 
-    def __init__(self, algorithm=None, project_id=None, inputs={}, hypertune=False):
-        super().__init__(algorithm, project_id, inputs)
+    def __init__(self, deployment_config, algorithm, inputs={}, hypertune=False):
+        super().__init__(deployment_config, algorithm, inputs)
         try:
-            self.inputs["imageUri"] = DEPLOYMENT['ATOMS'][self.algorithm][0]
+            self.inputs["imageUri"] = self._deployment['ATOMS'][self.algorithm][0]
         except KeyError:
             raise ValueError("Unknown algorithm")
         self._train_inputs = inputs
@@ -137,13 +136,13 @@ class TrainJobSpecHandler(JobSpecHandler):
 
             if item in JOB_SPECS_GLOBAL_ARGS:
                 if item == "modelDir":
-                    self._train_inputs[item] = GLOBALS["MODEL_BUCKET_ADDRESS"]
+                    self._train_inputs[item] = self._globals["MODEL_BUCKET_ADDRESS"]
                 else:
-                    self._train_inputs[item] = GLOBALS[item]
+                    self._train_inputs[item] = self._globals[item]
             elif item in JOB_SPECS_DEFAULT_ARGS:
-                self._train_inputs[item] = DEFAULTS[self.algorithm][item]
+                self._train_inputs[item] = self._defaults[self.algorithm][item]
             elif item == 'hyperparameters':
-                self._train_inputs[item] = HYPER[self.algorithm]
+                self._train_inputs[item] = self._hyper[self.algorithm]
             elif item == 'hypertuneLoss':
                 self._train_inputs[item] = self._train_inputs["hyperparameters"]["hyperparameterMetricTag"]
             else:
