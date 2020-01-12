@@ -18,4 +18,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.5',
+    install_requires=["google-api-python-client>=1.7.10", "google-auth>=1.6.3"]
 )
