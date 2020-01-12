@@ -1,7 +1,7 @@
 from googleapiclient import discovery
 from datetime import datetime as dt
-from config.constants import GLOBALS, DEPLOYMENT, DEFAULTS, HYPER
-from handler import JobHandler, JobSpecHandler
+from gcpaiutils.config.constants import GLOBALS, DEPLOYMENT, DEFAULTS, HYPER
+from gcpaiutils.handler import JobHandler, JobSpecHandler
 import subprocess
 
 

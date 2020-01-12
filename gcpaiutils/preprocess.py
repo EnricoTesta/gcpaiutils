@@ -1,15 +1,15 @@
 from googleapiclient import discovery
 from datetime import datetime as dt
-from config.constants import GLOBALS, DEPLOYMENT, DEFAULTS
-from handler import JobHandler, JobSpecHandler
+from gcpaiutils.config.constants import GLOBALS, DEPLOYMENT, DEFAULTS
+from gcpaiutils.handler import JobHandler, JobSpecHandler
 import subprocess
 
 
-JOB_SPECS_GLOBAL_ARGS = ['scaleTier', 'region']
-JOB_SPECS_DEFAULT_ARGS = ['modelFile', 'scoreDir', 'outputDir', 'useProba']
+JOB_SPECS_GLOBAL_ARGS = ['scaleTier', 'region', 'modelDir']
+JOB_SPECS_DEFAULT_ARGS = ['args', 'trainFiles']
 
 
-class ScoreJobHandler(JobHandler):
+class PreprocessJobHandler(JobHandler):
     """Builds train request for GCP AI Platform. Requires job specification as produced by JobSpecHandler.
 
        Args:
@@ -51,11 +51,14 @@ class ScoreJobHandler(JobHandler):
 
         # Map job_spec information to docker entrypoint kwargs
         job_spec['trainingInput']['masterConfig'] = {'imageUri': job_spec['trainingInput'].pop('imageUri')}
-        job_spec['trainingInput']['args'] = []
-        job_spec['trainingInput']['args'] += ['--model-file', job_spec['trainingInput'].pop('modelFile')]
-        job_spec['trainingInput']['args'] += ['--score-dir', job_spec['trainingInput'].pop('scoreDir')]
-        job_spec['trainingInput']['args'] += ['--output-dir', job_spec['trainingInput'].pop('outputDir')]
-        job_spec['trainingInput']['args'] += ['--use-proba', job_spec['trainingInput'].pop('useProba')]
+        if job_spec['trainingInput']['args'] is None:
+            job_spec['trainingInput']['args'] = []
+        else:
+            for idx, item in enumerate(job_spec['trainingInput']['args']):
+                if idx % 2 == 0:  # prefix argument name with '--' to match docker entrypoint kwargs names
+                    job_spec['trainingInput']['args'][idx] = '--' + str(job_spec['trainingInput']['args'][idx])
+        job_spec['trainingInput']['args'] += ['--model-dir', job_spec['trainingInput'].pop('modelDir')]
+        job_spec['trainingInput']['args'] += ['--train-files', job_spec['trainingInput'].pop('trainFiles')]
 
         self.success = None  # reset success flag
         self.mlapi = discovery.build('ml', 'v1', credentials=self._credentials)
@@ -63,7 +66,7 @@ class ScoreJobHandler(JobHandler):
                                                                , parent='projects/{}'.format(self._project_id))
 
 
-class ScoreJobSpecHandler(JobSpecHandler):
+class PreprocessJobSpecHandler(JobSpecHandler):
     """Builds job specifications to submit to GCP AI Platform. Specifications can be specified via a dictionary.
     If dictionary is not provided the class fetches defaults from a configuration file.
 
@@ -80,10 +83,10 @@ class ScoreJobSpecHandler(JobSpecHandler):
     def __init__(self, algorithm=None, project_id=None, inputs={}):
         super().__init__(algorithm, project_id, inputs)
         try:
-            self.inputs["imageUri"] = DEPLOYMENT['SCORING'][self.algorithm][0]
+            self.inputs["imageUri"] = DEPLOYMENT['PREPROCESS'][self.algorithm][0]
         except KeyError:
             raise ValueError("Unknown algorithm")
-        self._score_inputs = inputs
+        self._preprocess_inputs = inputs
 
     def _generate_job_name(self):
         """Generates jobId (mixed-case letters, numbers, and underscores only, starting with a letter).
@@ -98,14 +101,14 @@ class ScoreJobSpecHandler(JobSpecHandler):
         second = str(n.second) if n.second > 9 else '0' + str(n.second)
 
         # job name must start with a letter and string must be lowercase
-        if self._score_inputs['scoreDir']:
-            shards = self._score_inputs['scoreDir'].split("/")  # 3 = subject / 4 = problem / 6 = version
-            return 'score_' + shards[3].lower() + '_' + shards[4].lower() + '_' + shards[6].lower() + '_' + \
+        if self._preprocess_inputs['trainFiles']:
+            shards = self._preprocess_inputs['trainFiles'].split("/")  # 3 = subject / 4 = problem / 6 = version
+            return 'preprocess_' + shards[3].lower() + '_' + shards[4].lower() + '_' + shards[6].lower() + '_' + \
                    year + month + day + hour + minute + second + '_' + \
-                   self.algorithm + '_' + self._score_inputs['scaleTier'].lower()
+                   self.algorithm + '_' + self._preprocess_inputs['scaleTier'].lower()
         else:
-            return 'scorejob_' + year + month + day + hour + minute + second + '_' + \
-                self.algorithm + '_' + self._score_inputs['scaleTier'].lower()
+            return 'preprocessjob_' + year + month + day + hour + minute + second + '_' + \
+                self.algorithm + '_' + self._preprocess_inputs['scaleTier'].lower()
 
     def create_job_specs(self):
 
@@ -113,17 +116,21 @@ class ScoreJobSpecHandler(JobSpecHandler):
 
         # Cast defaults if not found
         for item in spec_full_args:
-            if item in self._score_inputs:
+            if item in self._preprocess_inputs:
                 continue
 
             if item in JOB_SPECS_GLOBAL_ARGS:
-                self._score_inputs[item] = GLOBALS[item]
+                if item == "modelDir":
+                    self._preprocess_inputs[item] = GLOBALS["MODEL_BUCKET_ADDRESS"]
+                else:
+                    self._preprocess_inputs[item] = GLOBALS[item]
             elif item in JOB_SPECS_DEFAULT_ARGS:
-                self._score_inputs[item] = DEFAULTS[self.algorithm][item]
+                self._preprocess_inputs[item] = DEFAULTS[self.algorithm][item]
             else:
                 raise NotImplementedError("Unrecognized job spec argument %s" % item)
 
         # Generate jobId
         job_id = self._generate_job_name()
 
-        self.job_specs = {'jobId': job_id, 'trainingInput': self._score_inputs}
+        self._preprocess_inputs['modelDir'] = self._preprocess_inputs['modelDir'] + '_'.join(job_id.split("_")[1:]) + '/'
+        self.job_specs = {'jobId': job_id, 'trainingInput': self._preprocess_inputs}

@@ -1,6 +1,6 @@
 from googleapiclient import errors
 from google.oauth2.service_account import Credentials
-from config.constants import GLOBALS
+from gcpaiutils.config.constants import GLOBALS
 import logging
 
 

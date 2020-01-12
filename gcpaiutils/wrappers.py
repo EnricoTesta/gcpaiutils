@@ -1,11 +1,11 @@
-from train import TrainJobHandler, TrainJobSpecHandler
-from predict import ScoreJobHandler, ScoreJobSpecHandler
-from utils import get_model_path_from_info_path
+from gcpaiutils.train import TrainJobHandler, TrainJobSpecHandler
+from gcpaiutils.predict import ScoreJobHandler, ScoreJobSpecHandler
+from gcpaiutils.utils import get_model_path_from_info_path
 from googleapiclient import discovery
 from google.cloud import storage
 from subprocess import check_call
 from shutil import rmtree
-from config.constants import GLOBALS
+from gcpaiutils.config.constants import GLOBALS
 import logging
 from google.oauth2.service_account import Credentials
 from time import sleep
