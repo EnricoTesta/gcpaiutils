@@ -19,10 +19,10 @@ class JobHandler:
 
         self._globals = get_deployment_config(deployment_config)
         self._project_id = self._globals['PROJECT_ID']
-        if self._globals['AI_PLATFORM_SA']:
+        try:
             self._credentials = Credentials.from_service_account_file(self._globals['AI_PLATFORM_SA'])
-        else:
-            self._credentials = None
+        except:
+            self._credentials = Credentials.from_service_account_file(self._globals['GCP_AI_PLATFORM_SA'])
         self.job_executor = job_executor
         self.mlapi = None
         self.job_request = None
