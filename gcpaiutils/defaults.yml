@@ -75,3 +75,9 @@ encoder_onehot:
   outputDir: 'gs://my_data_staging_bucket/'
   useProba: '1'
   args:
+aggregator:
+  trainFiles: 'gs://my_customers_bucket/DUMMY/SAMPLES/TRAIN_DATA/MAIN/'
+  modelFile:
+  args:
+    - 'method'
+    - 'average'

@@ -29,3 +29,6 @@ PREPROCESS:
     - '{{CONTAINERS_ROOT_URL}}/{{PROJECT_ID}}/encoder_string2int:encoder_str2int'
   encoder_onehot:
     - '{{CONTAINERS_ROOT_URL}}/{{PROJECT_ID}}/encoder_onehot:encoder_onehot'
+POSTPROCESS:
+  aggregator:
+    - '{{CONTAINERS_ROOT_URL}}/{{PROJECT_ID}}/aggregator:aggregator'
