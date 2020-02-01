@@ -1,6 +1,7 @@
 from googleapiclient import discovery, errors
 from google.oauth2.service_account import Credentials
-from gcpaiutils.utils import get_deployment_config, get_deployment_constants, get_defaults, get_hyper
+from gcpaiutils.utils import get_deployment_config, get_deployment_constants, get_defaults,\
+    get_hyper, get_timestamp_components
 import logging
 from datetime import datetime as dt
 
@@ -89,21 +90,15 @@ class JobSpecHandler:
 
     def _generate_job_name(self, prefix=''):
 
-        n = dt.now()
-        year = str(n.year)
-        month = str(n.month) if n.month > 9 else '0' + str(n.month)
-        day = str(n.day) if n.day > 9 else '0' + str(n.day)
-        hour = str(n.hour) if n.hour > 9 else '0' + str(n.hour)
-        minute = str(n.minute) if n.minute > 9 else '0' + str(n.minute)
-        second = str(n.second) if n.second > 9 else '0' + str(n.second)
+        year, month, day, hour, minute, second = get_timestamp_components()
 
         # job name must start with a letter and string must be lowercase
         try:
-            return prefix + self.request_ids['user'].lower() + '_' + self.request_ids['problem'].lower() + '_' + \
+            return prefix + '_' + self.request_ids['user'].lower() + '_' + self.request_ids['problem'].lower() + '_' + \
                    self.request_ids['version'].lower() + '_' + \
                    year + month + day + hour + minute + second + '_' + self.algorithm
         except KeyError:
-            return 'anonymous' + prefix + year + month + day + hour + minute + second + '_' + self.algorithm
+            return 'anonymous' + '_' + prefix + year + month + day + hour + minute + second + '_' + self.algorithm
 
     def create_job_specs(self):
         pass
