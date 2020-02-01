@@ -1,7 +1,4 @@
-from googleapiclient import discovery
-from datetime import datetime as dt
 from gcpaiutils.handler import JobHandler, JobSpecHandler
-import subprocess
 
 
 JOB_SPECS_GLOBAL_ARGS = ['scaleTier', 'region', 'modelDir']
