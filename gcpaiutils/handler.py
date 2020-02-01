@@ -3,7 +3,6 @@ from google.oauth2.service_account import Credentials
 from gcpaiutils.utils import get_deployment_config, get_deployment_constants, get_defaults,\
     get_hyper, get_timestamp_components
 import logging
-from datetime import datetime as dt
 
 
 class JobHandler:
