@@ -3,6 +3,7 @@ from google.oauth2.service_account import Credentials
 from gcpaiutils.utils import get_deployment_config, get_deployment_constants, get_defaults,\
     get_hyper, get_timestamp_components
 import logging
+import abc
 
 
 class JobHandler:
@@ -16,6 +17,9 @@ class JobHandler:
         Main usage:
            - submit_job(): returns the object. Sends the job request (async) with the specified parameters.
     """
+
+    __metaclass__ = abc.ABCMeta
+
     def __init__(self, deployment_config, job_executor='mlapi'):
 
         self._globals = get_deployment_config(deployment_config)
@@ -52,6 +56,7 @@ class JobHandler:
         self.job_request = self.mlapi.projects().jobs().create(body=self.translate_job_specs(job_spec)
                                                                , parent='projects/{}'.format(self._project_id))
 
+    @abc.abstractmethod
     def translate_job_specs(self, job_spec=None):
         pass
 
@@ -74,6 +79,8 @@ class JobSpecHandler:
           Platform request.
 
     """
+
+    __metaclass__ = abc.ABCMeta
 
     def __init__(self, deployment_config, algorithm=None, inputs={}, append_job_id=True, request_ids=None):
         self._globals = get_deployment_config(deployment_config)
@@ -99,5 +106,6 @@ class JobSpecHandler:
         except KeyError:
             return 'anonymous' + '_' + prefix + year + month + day + hour + minute + second + '_' + self.algorithm
 
+    @abc.abstractmethod
     def create_job_specs(self):
         pass
