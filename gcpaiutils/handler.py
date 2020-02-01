@@ -70,13 +70,14 @@ class JobSpecHandler:
 
     """
 
-    def __init__(self, deployment_config, algorithm=None, inputs={}):
+    def __init__(self, deployment_config, algorithm=None, inputs={}, append_job_id=True):
         self._globals = get_deployment_config(deployment_config)
         self._deployment = get_deployment_constants(self._globals)
         self._defaults = get_defaults()
         self._hyper = get_hyper()
         self.algorithm = algorithm
         self.inputs = inputs
+        self.append_job_id = append_job_id
         self._project_id = self._globals['PROJECT_ID']
         self.job_specs = None
 
