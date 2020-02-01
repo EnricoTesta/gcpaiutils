@@ -376,9 +376,6 @@ def score_new(deployment_config, use_proba=None, master_type=None, **kwargs):
         "scoreDir": score_dir,
         "useProba": use_proba,
         "masterType": master_type,
-        "user": get_user(kwargs),
-        "problem": get_problem(kwargs),
-        "version": get_version(kwargs),
         "scaleTier": "CUSTOM"
     }
 
