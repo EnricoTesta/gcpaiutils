@@ -1,7 +1,8 @@
-from googleapiclient import errors
+from googleapiclient import discovery, errors
 from google.oauth2.service_account import Credentials
 from gcpaiutils.utils import get_deployment_config, get_deployment_constants, get_defaults, get_hyper
 import logging
+from datetime import datetime as dt
 
 
 class JobHandler:
@@ -28,10 +29,8 @@ class JobHandler:
         self.job_request = None
         self.success = None
 
-    def _execute_job_request(self, job_spec):
-        if self.job_executor == 'gcloud':
-            self._exe_job_gcloud(job_spec)
-        elif self.job_executor == 'mlapi':
+    def _execute_job_request(self):
+        if self.job_executor == 'mlapi':
             self._exe_job_mlapi()
         else:
             raise NotImplementedError
@@ -48,12 +47,18 @@ class JobHandler:
             self.success = False
 
     def create_job_request(self, job_spec=None):
+        self.success = None  # reset success flag
+        self.mlapi = discovery.build('ml', 'v1', credentials=self._credentials)
+        self.job_request = self.mlapi.projects().jobs().create(body=self.translate_job_specs(job_spec)
+                                                               , parent='projects/{}'.format(self._project_id))
+
+    def translate_job_specs(self, job_spec=None):
         pass
 
     def submit_job(self, job_spec):
         if self.job_executor == 'mlapi':
             self.create_job_request(job_spec)
-        self._execute_job_request(job_spec)
+        self._execute_job_request()
 
 
 class JobSpecHandler:
@@ -70,7 +75,7 @@ class JobSpecHandler:
 
     """
 
-    def __init__(self, deployment_config, algorithm=None, inputs={}, append_job_id=True):
+    def __init__(self, deployment_config, algorithm=None, inputs={}, append_job_id=True, request_ids=None):
         self._globals = get_deployment_config(deployment_config)
         self._deployment = get_deployment_constants(self._globals)
         self._defaults = get_defaults()
@@ -78,11 +83,27 @@ class JobSpecHandler:
         self.algorithm = algorithm
         self.inputs = inputs
         self.append_job_id = append_job_id
+        self.request_ids = request_ids
         self._project_id = self._globals['PROJECT_ID']
         self.job_specs = None
 
-    def _generate_job_name(self):
-        pass
+    def _generate_job_name(self, prefix=''):
+
+        n = dt.now()
+        year = str(n.year)
+        month = str(n.month) if n.month > 9 else '0' + str(n.month)
+        day = str(n.day) if n.day > 9 else '0' + str(n.day)
+        hour = str(n.hour) if n.hour > 9 else '0' + str(n.hour)
+        minute = str(n.minute) if n.minute > 9 else '0' + str(n.minute)
+        second = str(n.second) if n.second > 9 else '0' + str(n.second)
+
+        # job name must start with a letter and string must be lowercase
+        try:
+            return prefix + self.request_ids['user'].lower() + '_' + self.request_ids['problem'].lower() + '_' + \
+                   self.request_ids['version'].lower() + '_' + \
+                   year + month + day + hour + minute + second + '_' + self.algorithm
+        except KeyError:
+            return 'anonymous' + prefix + year + month + day + hour + minute + second + '_' + self.algorithm
 
     def create_job_specs(self):
         pass
