@@ -283,7 +283,9 @@ def train_new(deployment_config, atom=None, hyperspace=None, **kwargs):
         trainingInput["hypertuneLoss"] = hyperspace[atom]["hyperparameterMetricTag"]
 
     S = TrainJobSpecHandler(deployment_config=deployment_config, algorithm=atom, inputs=trainingInput,
-                            hypertune=hypertune)
+                            hypertune=hypertune, request_ids={'user': get_user(kwargs),
+                                                              'problem': get_problem(kwargs),
+                                                              'version': get_version(kwargs)})
     S.create_job_specs()
     T = TrainJobHandler(deployment_config=deployment_config, job_executor='mlapi')
     T.submit_job(S.job_specs)
@@ -409,7 +411,9 @@ def score_new(deployment_config, use_proba=None, master_type=None, **kwargs):
 
         S = ScoreJobSpecHandler(algorithm='_'.join(model_path.split("/")[0].split("_")[4:-1]),
                                 deployment_config=deployment_config,
-                                inputs=currentInput)
+                                inputs=currentInput, request_ids={'user': get_user(kwargs),
+                                                              'problem': get_problem(kwargs),
+                                                              'version': get_version(kwargs)})
         S.create_job_specs()
         T = ScoreJobHandler(deployment_config=deployment_config, job_executor='mlapi')
         T.submit_job(S.job_specs)
@@ -454,7 +458,9 @@ def aggregate_new(deployment_config, **kwargs):
 
         S = PostprocessJobSpecHandler(algorithm='aggregator',
                                       deployment_config=deployment_config,
-                                      inputs=scoreInput)
+                                      inputs=scoreInput, request_ids={'user': get_user(kwargs),
+                                                                      'problem': get_problem(kwargs),
+                                                                      'version': get_version(kwargs)})
         S.create_job_specs()
         T = PostprocessJobHandler(deployment_config=deployment_config, job_executor='mlapi')
         T.submit_job(S.job_specs)
@@ -490,7 +496,9 @@ def data_evaluation(deployment_config, **kwargs):
     S = PreprocessJobSpecHandler(deployment_config=deployment_config,
                                  algorithm='data_evaluator',
                                  append_job_id=False,  # ensure you overwrite same destination
-                                 inputs=preprocess_input)
+                                 inputs=preprocess_input, request_ids={'user': get_user(kwargs),
+                                                              'problem': get_problem(kwargs),
+                                                              'version': get_version(kwargs)})
     S.create_job_specs()
     T = PreprocessJobHandler(deployment_config=deployment_config, job_executor='mlapi')
     T.submit_job(S.job_specs)
