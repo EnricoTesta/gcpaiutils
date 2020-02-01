@@ -409,8 +409,8 @@ def score_new(deployment_config, use_proba=None, master_type=None, **kwargs):
         S = ScoreJobSpecHandler(algorithm='_'.join(model_path.split("/")[0].split("_")[4:-1]),
                                 deployment_config=deployment_config,
                                 inputs=currentInput, request_ids={'user': get_user(kwargs),
-                                                              'problem': get_problem(kwargs),
-                                                              'version': get_version(kwargs)})
+                                                                  'problem': get_problem(kwargs),
+                                                                  'version': get_version(kwargs)})
         S.create_job_specs()
         T = ScoreJobHandler(deployment_config=deployment_config, job_executor='mlapi')
         T.submit_job(S.job_specs)
@@ -494,8 +494,8 @@ def data_evaluation(deployment_config, **kwargs):
                                  algorithm='data_evaluator',
                                  append_job_id=False,  # ensure you overwrite same destination
                                  inputs=preprocess_input, request_ids={'user': get_user(kwargs),
-                                                              'problem': get_problem(kwargs),
-                                                              'version': get_version(kwargs)})
+                                                                       'problem': get_problem(kwargs),
+                                                                       'version': get_version(kwargs)})
     S.create_job_specs()
     T = PreprocessJobHandler(deployment_config=deployment_config, job_executor='mlapi')
     T.submit_job(S.job_specs)
