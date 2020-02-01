@@ -102,7 +102,7 @@ def get_gcs_credentials(_globals):
         return Credentials.from_service_account_file(_globals['GCP_AI_PLATFORM_SA'])
 
 
-def make_temp_dir(root):
+def get_timestamp_components():
 
     # Current timestamp
     n = dt.now()
@@ -112,6 +112,13 @@ def make_temp_dir(root):
     hour = str(n.hour) if n.hour > 9 else '0' + str(n.hour)
     minute = str(n.minute) if n.minute > 9 else '0' + str(n.minute)
     second = str(n.second) if n.second > 9 else '0' + str(n.second)
+
+    return year, month, day, hour, minute, second
+
+
+def make_temp_dir(root):
+
+    year, month, day, hour, minute, second = get_timestamp_components()
 
     # Random ID
     r_id = ''.join([choice(string.ascii_letters + string.digits) for _ in range(10)])
