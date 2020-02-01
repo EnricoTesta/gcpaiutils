@@ -8,7 +8,6 @@ from googleapiclient import discovery
 from google.cloud import storage
 from subprocess import check_call
 from shutil import rmtree
-from pandas import read_csv, concat
 import logging
 from google.oauth2.service_account import Credentials
 from time import sleep
@@ -258,7 +257,6 @@ def train_new(deployment_config, atom=None, hyperspace=None, **kwargs):
     :param kwargs:
     :return:
     """
-
     _globals = get_deployment_config(deployment_config)
     hypertune = hyperspace is not None
     model_dir = "gs://{}/{}/{}/{}/MODELS/".format(_globals["MODEL_BUCKET_NAME"],
