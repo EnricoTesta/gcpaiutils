@@ -2,7 +2,9 @@ from yaml import safe_load
 from jinja2 import Template
 from random import choice
 from shutil import rmtree
+from google.cloud import storage
 import string
+import logging
 from datetime import datetime as dt
 from google.oauth2.service_account import Credentials
 import os
@@ -52,7 +54,10 @@ def get_model_path_from_info_path(info_path):
 
 
 def get_hardware_config(atom, data_size):
-    data_size_in_gb = data_size/pow(10, 9)
+    try:
+        data_size_in_gb = data_size/pow(10, 9)
+    except TypeError:
+        data_size_in_gb = 0  # TODO: remove this. Workflow should break if it doesn't know how to allocate hardware
     if atom in ["class_skl_logreg", "class_lda", "class_qda"]:
         if data_size_in_gb <= 0.1:
             return "n1-standard-4"
@@ -60,7 +65,7 @@ def get_hardware_config(atom, data_size):
             return "n1-standard-8"
         else:
             raise(ValueError, "Data size not handled: %s MB." % data_size_in_gb)
-    elif atom in ["class_dummy"]:
+    elif atom in ["class_dummy", "aggregator"]:
         if data_size_in_gb <= 0.5:
             return "n1-standard-4"
         elif data_size_in_gb <= 1:
@@ -116,3 +121,31 @@ def make_temp_dir(root):
         rmtree(tmp_dir)
     os.mkdir(tmp_dir)
     return tmp_dir
+
+
+def get_job_assessment(status):
+    successful_jobs = [job for job, s in status.items() if s == 'SUCCEEDED']
+    failed_jobs = [job for job, s in status.items() if s == 'FAILED']
+    if len(failed_jobs) >= 1:
+        for job in failed_jobs:
+            logging.error("Job failed: {}".format(job))
+        raise ValueError("One or more jobs failed")
+    return successful_jobs
+
+
+def get_selector(_globals, kwargs):
+
+    selector_blob = os.path.join(get_user(kwargs), get_problem(kwargs), get_version(kwargs))
+    gcs_credentials = get_gcs_credentials(_globals)
+    gcs_client = storage.Client(project=_globals['PROJECT_ID'], credentials=gcs_credentials)
+    gcs_blob_list = [blob for blob
+                     in list(gcs_client.list_blobs(bucket_or_name=_globals["MODEL_BUCKET_NAME"],
+                                                   prefix=os.path.join(selector_blob, "SELECTOR")))
+                     if blob.name[-1] != "/"]
+
+    local_dir = make_temp_dir(os.getcwd())
+    if len(gcs_blob_list) > 1:
+        raise ValueError("More than one selection file found in URI.")
+    local_destination = os.path.join(local_dir, gcs_blob_list[0].name.split("/")[-1])
+    gcs_blob_list[0].download_to_filename(local_destination, client=gcs_client)
+    return local_dir, local_destination

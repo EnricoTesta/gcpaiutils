@@ -4,11 +4,11 @@ from gcpaiutils.handler import JobHandler, JobSpecHandler
 import subprocess
 
 
-JOB_SPECS_GLOBAL_ARGS = ['scaleTier', 'region', 'modelDir']
-JOB_SPECS_DEFAULT_ARGS = ['args', 'trainFiles']
+JOB_SPECS_GLOBAL_ARGS = ['scaleTier', 'region']
+JOB_SPECS_DEFAULT_ARGS = ['args', 'scoreDir', 'outputDir']
 
 
-class PreprocessJobHandler(JobHandler):
+class PostprocessJobHandler(JobHandler):
     """Builds train request for GCP AI Platform. Requires job specification as produced by JobSpecHandler.
 
        Args:
@@ -22,28 +22,6 @@ class PreprocessJobHandler(JobHandler):
     def __init__(self, deployment_config, job_executor=None):
         super().__init__(deployment_config, job_executor)
 
-    def _exe_job_gcloud(self, job_spec):
-        prefix = 'export PATH=/home/vagrant/google-cloud-sdk/bin:$PATH && '
-        gcloud = 'gcloud beta ai-platform jobs submit training '
-        name = job_spec['jobId'] + ' '
-        region = '--region ' + job_spec['trainingInput']['region'] + ' '
-        image = '--master-image-uri ' + job_spec['trainingInput']['imageUri'] + ' '
-        scale = '--scale-tier ' + job_spec['trainingInput']['scaleTier'].lower() + ' '
-        if job_spec['trainingInput']['scaleTier'].lower() == 'custom':
-            master_machine_type = '--master-machine-type ' + job_spec['trainingInput']['masterType'] + ' '
-        else:
-            master_machine_type = ''
-        pause = '-- '
-        model_file = '--model-file=' + job_spec['trainingInput']['modelFile'] + ' '
-        score_dir = '--score-dir=' + job_spec['trainingInput']['scoreDir'] + ' '
-        output_dir = '--output-dir=' + job_spec['trainingInput']['outputDir'] + ' '
-        use_proba = '--use-proba=' + job_spec['trainingInput']['useProba'] + ' '
-
-        submit_cmd = prefix + gcloud + name + region + image + scale + master_machine_type + pause + \
-                     model_file + score_dir + output_dir + use_proba
-        subprocess.run(submit_cmd, shell=True, check=True)
-        self.success = True
-
     def create_job_request(self, job_spec=None):
         if job_spec is None:
             raise ValueError("Must set job_spec to create a train job.")
@@ -56,8 +34,8 @@ class PreprocessJobHandler(JobHandler):
             for idx, item in enumerate(job_spec['trainingInput']['args']):
                 if idx % 2 == 0:  # prefix argument name with '--' to match docker entrypoint kwargs names
                     job_spec['trainingInput']['args'][idx] = '--' + str(job_spec['trainingInput']['args'][idx])
-        job_spec['trainingInput']['args'] += ['--model-dir', job_spec['trainingInput'].pop('modelDir')]
-        job_spec['trainingInput']['args'] += ['--train-files', job_spec['trainingInput'].pop('trainFiles')]
+        job_spec['trainingInput']['args'] += ['--score-dir', job_spec['trainingInput'].pop('scoreDir')]
+        job_spec['trainingInput']['args'] += ['--output-dir', job_spec['trainingInput'].pop('outputDir')]
 
         self.success = None  # reset success flag
         self.mlapi = discovery.build('ml', 'v1', credentials=self._credentials)
@@ -65,7 +43,7 @@ class PreprocessJobHandler(JobHandler):
                                                                , parent='projects/{}'.format(self._project_id))
 
 
-class PreprocessJobSpecHandler(JobSpecHandler):
+class PostprocessJobSpecHandler(JobSpecHandler):
     """Builds job specifications to submit to GCP AI Platform. Specifications can be specified via a dictionary.
     If dictionary is not provided the class fetches defaults from a configuration file.
 
@@ -83,10 +61,10 @@ class PreprocessJobSpecHandler(JobSpecHandler):
         super().__init__(deployment_config=deployment_config, algorithm=algorithm,
                          append_job_id=append_job_id, inputs=inputs)
         try:
-            self.inputs["imageUri"] = self._deployment['PREPROCESS'][self.algorithm][0]
+            self.inputs["imageUri"] = self._deployment['POSTPROCESS'][self.algorithm][0]
         except KeyError:
             raise ValueError("Unknown algorithm")
-        self._preprocess_inputs = inputs
+        self._postprocess_inputs = inputs
 
     def _generate_job_name(self):
         """Generates jobId (mixed-case letters, numbers, and underscores only, starting with a letter).
@@ -100,20 +78,21 @@ class PreprocessJobSpecHandler(JobSpecHandler):
         minute = str(n.minute) if n.minute > 9 else '0' + str(n.minute)
         second = str(n.second) if n.second > 9 else '0' + str(n.second)
 
+        # job name must start with a letter and string must be lowercase
         try:
-            shards = self._preprocess_inputs['trainFiles'].split("/")  # 3 = subject / 4 = problem / 6 = version
-            return 'preprocess_' + shards[3].lower() + '_' + shards[4].lower() + '_' + shards[6].lower() + '_' + \
+            shards = self._postprocess_inputs['scoreDir'].split("/")  # 3 = subject / 4 = problem / 6 = version
+            return 'score_' + shards[3].lower() + '_' + shards[4].lower() + '_' + shards[6].lower() + '_' + \
                    year + month + day + hour + minute + second + '_' + \
-                   self.algorithm + '_' + self._preprocess_inputs['scaleTier'].lower()
+                   self.algorithm + '_' + self._postprocess_inputs['scaleTier'].lower()
         except:
             try:
-                shards = self._preprocess_inputs['modelDir'].split("/")  # 3 = subject / 4 = problem / 6 = version
-                return 'preprocess_' + shards[3].lower() + '_' + shards[4].lower() + '_' + shards[5].lower() + '_' + \
+                return 'score_' + self._postprocess_inputs['user'].lower() + '_' + \
+                       self._postprocess_inputs['problem'].lower() + '_' + self._postprocess_inputs['version'].lower() + '_' + \
                        year + month + day + hour + minute + second + '_' + \
-                       self.algorithm + '_' + self._preprocess_inputs['scaleTier'].lower()
+                       self.algorithm + '_' + self._postprocess_inputs['scaleTier'].lower()
             except:
-                return 'preprocessjob_' + year + month + day + hour + minute + second + '_' + \
-                       self.algorithm + '_' + self._preprocess_inputs['scaleTier'].lower()
+                return 'scorejob_' + year + month + day + hour + minute + second + '_' + \
+                       self.algorithm + '_' + self._postprocess_inputs['scaleTier'].lower()
 
     def create_job_specs(self):
 
@@ -121,23 +100,21 @@ class PreprocessJobSpecHandler(JobSpecHandler):
 
         # Cast defaults if not found
         for item in spec_full_args:
-            if item in self._preprocess_inputs:
+            if item in self._postprocess_inputs:
                 continue
 
             if item in JOB_SPECS_GLOBAL_ARGS:
                 if item == "modelDir":
-                    self._preprocess_inputs[item] = self._globals["MODEL_BUCKET_ADDRESS"]
+                    self._postprocess_inputs[item] = self._globals["MODEL_BUCKET_ADDRESS"]
                 else:
-                    self._preprocess_inputs[item] = self._globals[item]
+                    self._postprocess_inputs[item] = self._globals[item]
             elif item in JOB_SPECS_DEFAULT_ARGS:
-                self._preprocess_inputs[item] = self._defaults[self.algorithm][item]
+                self._postprocess_inputs[item] = self._defaults[self.algorithm][item]
             else:
                 raise NotImplementedError("Unrecognized job spec argument %s" % item)
 
         # Generate jobId
         job_id = self._generate_job_name()
 
-        if self.append_job_id:
-            self._preprocess_inputs['modelDir'] = self._preprocess_inputs['modelDir'] + \
-                                                  '_'.join(job_id.split("_")[1:]) + '/'
-        self.job_specs = {'jobId': job_id, 'trainingInput': self._preprocess_inputs}
+        # self._postprocess_inputs['modelDir'] = self._postprocess_inputs['modelDir'] + '_'.join(job_id.split("_")[1:]) + '/'
+        self.job_specs = {'jobId': job_id, 'trainingInput': self._postprocess_inputs}

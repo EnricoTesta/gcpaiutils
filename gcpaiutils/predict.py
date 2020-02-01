@@ -76,12 +76,17 @@ class ScoreJobSpecHandler(JobSpecHandler):
 
     """
 
-    def __init__(self, deployment_config, algorithm, inputs={}):
-        super().__init__(deployment_config, algorithm, inputs)
+    def __init__(self, deployment_config=None, algorithm=None, inputs={}, append_job_id=True):
+        super().__init__(deployment_config=deployment_config, algorithm=algorithm,
+                         append_job_id=append_job_id, inputs=inputs)
         try:
             self.inputs["imageUri"] = self._deployment['SCORING'][self.algorithm][0]
         except KeyError:
-            raise ValueError("Unknown algorithm")
+            # TODO: currently Aggregator is considered a training atom but it's not found within training atoms list
+            try:
+                self.inputs["imageUri"] = self._deployment['POSTPROCESS'][self.algorithm][0]
+            except KeyError:
+                raise ValueError("Unknown algorithm")
         self._score_inputs = inputs
 
     def _generate_job_name(self):
@@ -97,14 +102,21 @@ class ScoreJobSpecHandler(JobSpecHandler):
         second = str(n.second) if n.second > 9 else '0' + str(n.second)
 
         # job name must start with a letter and string must be lowercase
-        if self._score_inputs['scoreDir']:
+        #if self._score_inputs['scoreDir']:
+        try:
             shards = self._score_inputs['scoreDir'].split("/")  # 3 = subject / 4 = problem / 6 = version
             return 'score_' + shards[3].lower() + '_' + shards[4].lower() + '_' + shards[6].lower() + '_' + \
                    year + month + day + hour + minute + second + '_' + \
                    self.algorithm + '_' + self._score_inputs['scaleTier'].lower()
-        else:
-            return 'scorejob_' + year + month + day + hour + minute + second + '_' + \
-                self.algorithm + '_' + self._score_inputs['scaleTier'].lower()
+        except:
+            try:
+                return 'score_' + self._score_inputs['user'].lower() + '_' + \
+                       self._score_inputs['problem'].lower() + '_' + self._score_inputs['version'].lower() + '_' + \
+                       year + month + day + hour + minute + second + '_' + \
+                       self.algorithm + '_' + self._score_inputs['scaleTier'].lower()
+            except:
+                return 'scorejob_' + year + month + day + hour + minute + second + '_' + \
+                    self.algorithm + '_' + self._score_inputs['scaleTier'].lower()
 
     def create_job_specs(self):
 
@@ -124,5 +136,11 @@ class ScoreJobSpecHandler(JobSpecHandler):
 
         # Generate jobId
         job_id = self._generate_job_name()
+
+        # Clear input of unwanted keys
+        dict_keys = [k for k in self._score_inputs]
+        for key in dict_keys:
+            if key not in spec_full_args + ['imageUri', 'masterType']:
+                self._score_inputs.pop(key)
 
         self.job_specs = {'jobId': job_id, 'trainingInput': self._score_inputs}

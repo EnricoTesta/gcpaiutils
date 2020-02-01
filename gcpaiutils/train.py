@@ -91,13 +91,17 @@ class TrainJobSpecHandler(JobSpecHandler):
           Platform request.
 
     """
-
-    def __init__(self, deployment_config, algorithm, inputs={}, hypertune=False):
-        super().__init__(deployment_config, algorithm, inputs)
+    def __init__(self, deployment_config=None, algorithm=None, inputs={}, append_job_id=True, hypertune=False):
+        super().__init__(deployment_config=deployment_config, algorithm=algorithm,
+                         append_job_id=append_job_id, inputs=inputs)
         try:
             self.inputs["imageUri"] = self._deployment['ATOMS'][self.algorithm][0]
         except KeyError:
-            raise ValueError("Unknown algorithm")
+            # TODO: currently Aggregator is considered a training atom but it's not found within training atoms list
+            try:
+                self.inputs["imageUri"] = self._deployment['POSTPROCESS'][self.algorithm][0]
+            except KeyError:
+                raise ValueError("Unknown algorithm")
         self._train_inputs = inputs
         self.hypertune = hypertune
 
@@ -114,14 +118,22 @@ class TrainJobSpecHandler(JobSpecHandler):
         second = str(n.second) if n.second > 9 else '0' + str(n.second)
 
         # job name must start with a letter and string must be lowercase
-        if self._train_inputs['trainFiles']:
+        try:
+        #if self._train_inputs['trainFiles']:
             shards = self._train_inputs['trainFiles'].split("/")  # 3 = subject / 4 = problem / 6 = version
             return 'train_' + shards[3].lower() + '_' + shards[4].lower() + '_' + shards[6].lower() + '_' + \
                    year + month + day + hour + minute + second + '_' + \
                    self.algorithm + '_' + self._train_inputs['scaleTier'].lower()
-        else:
-            return 'trainjob_' + year + month + day + hour + minute + second + '_' + \
-                self.algorithm + '_' + self._train_inputs['scaleTier'].lower()
+        except:
+            #else:
+            try:
+                shards = self._train_inputs['modelDir'].split("/")  # 3 = subject / 4 = problem / 5 = version
+                return 'train_' + shards[3].lower() + '_' + shards[4].lower() + '_' + shards[5].lower() + '_' + \
+                       year + month + day + hour + minute + second + '_' + \
+                       self.algorithm + '_' + self._train_inputs['scaleTier'].lower()
+            except:
+                return 'trainjob_' + year + month + day + hour + minute + second + '_' + \
+                    self.algorithm + '_' + self._train_inputs['scaleTier'].lower()
 
     def create_job_specs(self):
 
