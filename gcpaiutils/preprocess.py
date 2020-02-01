@@ -1,7 +1,4 @@
-from googleapiclient import discovery
-from datetime import datetime as dt
 from gcpaiutils.handler import JobHandler, JobSpecHandler
-import subprocess
 
 
 JOB_SPECS_GLOBAL_ARGS = ['scaleTier', 'region', 'modelDir']
@@ -22,29 +19,7 @@ class PreprocessJobHandler(JobHandler):
     def __init__(self, deployment_config, job_executor=None):
         super().__init__(deployment_config, job_executor)
 
-    def _exe_job_gcloud(self, job_spec):
-        prefix = 'export PATH=/home/vagrant/google-cloud-sdk/bin:$PATH && '
-        gcloud = 'gcloud beta ai-platform jobs submit training '
-        name = job_spec['jobId'] + ' '
-        region = '--region ' + job_spec['trainingInput']['region'] + ' '
-        image = '--master-image-uri ' + job_spec['trainingInput']['imageUri'] + ' '
-        scale = '--scale-tier ' + job_spec['trainingInput']['scaleTier'].lower() + ' '
-        if job_spec['trainingInput']['scaleTier'].lower() == 'custom':
-            master_machine_type = '--master-machine-type ' + job_spec['trainingInput']['masterType'] + ' '
-        else:
-            master_machine_type = ''
-        pause = '-- '
-        model_file = '--model-file=' + job_spec['trainingInput']['modelFile'] + ' '
-        score_dir = '--score-dir=' + job_spec['trainingInput']['scoreDir'] + ' '
-        output_dir = '--output-dir=' + job_spec['trainingInput']['outputDir'] + ' '
-        use_proba = '--use-proba=' + job_spec['trainingInput']['useProba'] + ' '
-
-        submit_cmd = prefix + gcloud + name + region + image + scale + master_machine_type + pause + \
-                     model_file + score_dir + output_dir + use_proba
-        subprocess.run(submit_cmd, shell=True, check=True)
-        self.success = True
-
-    def create_job_request(self, job_spec=None):
+    def translate_job_specs(self, job_spec=None):
         if job_spec is None:
             raise ValueError("Must set job_spec to create a train job.")
 
@@ -59,10 +34,7 @@ class PreprocessJobHandler(JobHandler):
         job_spec['trainingInput']['args'] += ['--model-dir', job_spec['trainingInput'].pop('modelDir')]
         job_spec['trainingInput']['args'] += ['--train-files', job_spec['trainingInput'].pop('trainFiles')]
 
-        self.success = None  # reset success flag
-        self.mlapi = discovery.build('ml', 'v1', credentials=self._credentials)
-        self.job_request = self.mlapi.projects().jobs().create(body=job_spec
-                                                               , parent='projects/{}'.format(self._project_id))
+        return job_spec
 
 
 class PreprocessJobSpecHandler(JobSpecHandler):
@@ -79,41 +51,13 @@ class PreprocessJobSpecHandler(JobSpecHandler):
 
     """
 
-    def __init__(self, deployment_config=None, algorithm=None, inputs={}, append_job_id=True):
+    def __init__(self, deployment_config=None, algorithm=None, inputs={}, append_job_id=True, request_ids=None):
         super().__init__(deployment_config=deployment_config, algorithm=algorithm,
-                         append_job_id=append_job_id, inputs=inputs)
+                         append_job_id=append_job_id, inputs=inputs, request_ids=request_ids)
         try:
             self.inputs["imageUri"] = self._deployment['PREPROCESS'][self.algorithm][0]
         except KeyError:
             raise ValueError("Unknown algorithm")
-        self._preprocess_inputs = inputs
-
-    def _generate_job_name(self):
-        """Generates jobId (mixed-case letters, numbers, and underscores only, starting with a letter).
-        Include info about hardware (scaleTier), training algo (packageUris), train data (--train-files)."""
-
-        n = dt.now()
-        year = str(n.year)
-        month = str(n.month) if n.month > 9 else '0' + str(n.month)
-        day = str(n.day) if n.day > 9 else '0' + str(n.day)
-        hour = str(n.hour) if n.hour > 9 else '0' + str(n.hour)
-        minute = str(n.minute) if n.minute > 9 else '0' + str(n.minute)
-        second = str(n.second) if n.second > 9 else '0' + str(n.second)
-
-        try:
-            shards = self._preprocess_inputs['trainFiles'].split("/")  # 3 = subject / 4 = problem / 6 = version
-            return 'preprocess_' + shards[3].lower() + '_' + shards[4].lower() + '_' + shards[6].lower() + '_' + \
-                   year + month + day + hour + minute + second + '_' + \
-                   self.algorithm + '_' + self._preprocess_inputs['scaleTier'].lower()
-        except:
-            try:
-                shards = self._preprocess_inputs['modelDir'].split("/")  # 3 = subject / 4 = problem / 6 = version
-                return 'preprocess_' + shards[3].lower() + '_' + shards[4].lower() + '_' + shards[5].lower() + '_' + \
-                       year + month + day + hour + minute + second + '_' + \
-                       self.algorithm + '_' + self._preprocess_inputs['scaleTier'].lower()
-            except:
-                return 'preprocessjob_' + year + month + day + hour + minute + second + '_' + \
-                       self.algorithm + '_' + self._preprocess_inputs['scaleTier'].lower()
 
     def create_job_specs(self):
 
@@ -121,23 +65,22 @@ class PreprocessJobSpecHandler(JobSpecHandler):
 
         # Cast defaults if not found
         for item in spec_full_args:
-            if item in self._preprocess_inputs:
+            if item in self.inputs:
                 continue
 
             if item in JOB_SPECS_GLOBAL_ARGS:
                 if item == "modelDir":
-                    self._preprocess_inputs[item] = self._globals["MODEL_BUCKET_ADDRESS"]
+                    self.inputs[item] = self._globals["MODEL_BUCKET_ADDRESS"]
                 else:
-                    self._preprocess_inputs[item] = self._globals[item]
+                    self.inputs[item] = self._globals[item]
             elif item in JOB_SPECS_DEFAULT_ARGS:
-                self._preprocess_inputs[item] = self._defaults[self.algorithm][item]
+                self.inputs[item] = self._defaults[self.algorithm][item]
             else:
                 raise NotImplementedError("Unrecognized job spec argument %s" % item)
 
         # Generate jobId
-        job_id = self._generate_job_name()
-
+        job_id = self._generate_job_name(prefix='preprocess')
         if self.append_job_id:
-            self._preprocess_inputs['modelDir'] = self._preprocess_inputs['modelDir'] + \
+            self.inputs['modelDir'] = self.inputs['modelDir'] + \
                                                   '_'.join(job_id.split("_")[1:]) + '/'
-        self.job_specs = {'jobId': job_id, 'trainingInput': self._preprocess_inputs}
+        self.job_specs = {'jobId': job_id, 'trainingInput': self.inputs}
