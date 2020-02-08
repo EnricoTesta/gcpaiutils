@@ -8,6 +8,7 @@ import logging
 from datetime import datetime as dt
 from google.oauth2.service_account import Credentials
 import os
+import json
 
 
 PATH = os.path.abspath(os.path.dirname(__file__))
@@ -54,31 +55,31 @@ def get_model_path_from_info_path(info_path):
 
 
 def get_hardware_config(atom, data_size):
-    try:
-        data_size_in_gb = data_size/pow(10, 9)
-    except TypeError:
-        data_size_in_gb = 0  # TODO: remove this. Workflow should break if it doesn't know how to allocate hardware
     if atom in ["class_skl_logreg", "class_lda", "class_qda"]:
-        if data_size_in_gb <= 0.1:
+        if data_size <= 0.1:
             return "n1-standard-4"
-        elif data_size_in_gb <= 1:
+        elif data_size <= 1:
             return "n1-standard-8"
-        else:
-            raise(ValueError, "Data size not handled: %s MB." % data_size_in_gb)
-    elif atom in ["class_dummy", "aggregator"]:
-        if data_size_in_gb <= 0.5:
-            return "n1-standard-4"
-        elif data_size_in_gb <= 1:
-            return "n1-standard-8"
-        else:
-            raise(ValueError, "Data size not handled: %s MB." % data_size_in_gb)
-    elif atom in ["class_xgb", "class_lgbm"]:
-        if data_size_in_gb <= 0.1:
-            return "n1-highmem-4"
-        elif data_size_in_gb <= 1:
+        elif data_size <= 3:
             return "n1-highmem-8"
         else:
-            raise (ValueError, "Data size not handled: %s MB." % data_size_in_gb)
+            raise(ValueError, "Data size not handled: %s GB." % data_size)
+    elif atom in ["class_dummy", "aggregator"]:
+        if data_size <= 0.5:
+            return "n1-standard-4"
+        elif data_size <= 1:
+            return "n1-standard-8"
+        elif data_size <= 3:
+            return "n1-highmem-8"
+        else:
+            raise(ValueError, "Data size not handled: %s GB." % data_size)
+    elif atom in ["class_xgb", "class_lgbm"]:
+        if data_size <= 0.1:
+            return "n1-highmem-4"
+        elif data_size <= 3:
+            return "n1-highmem-8"
+        else:
+            raise (ValueError, "Data size not handled: %s GB." % data_size)
     else:
         raise(NotImplementedError, "Unrecognized atom name: %s. Could not choose hardware settings." % atom)
 
@@ -100,6 +101,30 @@ def get_gcs_credentials(_globals):
         return Credentials.from_service_account_file(_globals['AI_PLATFORM_SA'])
     except FileNotFoundError:
         return Credentials.from_service_account_file(_globals['GCP_AI_PLATFORM_SA'])
+
+
+def get_metadata(_globals, dag_type, kwargs):
+
+    # Define metadata remote location & setup local dir
+    metadata_uri = "{}/{}/{}/METADATA/{}/metadata.json".format(get_user(kwargs),
+                                                               get_problem(kwargs),
+                                                               get_version(kwargs),
+                                                               dag_type)
+    tmp_metadata_dir = make_temp_dir(os.getcwd())
+    metadata_local_filename = os.path.join(tmp_metadata_dir, 'metadata.json')
+
+    # Fetch metadata from GCS
+    gcs_credentials = get_gcs_credentials(_globals)
+    gcs_client = storage.Client(project=_globals['PROJECT_ID'], credentials=gcs_credentials)
+    blob = storage.Blob(metadata_uri, gcs_client.get_bucket(bucket_or_name=_globals["MODEL_BUCKET_NAME"]))
+    blob.download_to_filename(metadata_local_filename, client=gcs_client)
+
+    # Load in memory & clean-up
+    with open(metadata_local_filename, 'r') as f:
+        metadata_dict = json.load(f)
+    rmtree(tmp_metadata_dir)
+
+    return metadata_dict
 
 
 def get_timestamp_components():
