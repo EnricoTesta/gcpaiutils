@@ -130,7 +130,10 @@ def selection(deployment_config, train_task_ids=None, selector_class=None, **kwa
 
     successful_train_jobs = []
     for train_task in train_task_ids:
-        successful_train_jobs.append(kwargs['task_instance'].xcom_pull(task_ids=train_task, key='successful_jobs'))
+        current_train_job = kwargs['task_instance'].xcom_pull(task_ids=train_task, key='successful_jobs')
+        if current_train_job is None:
+            continue  # this happens when a train_task is skipped
+        successful_train_jobs.append(current_train_job)
     successful_train_jobs = [item for sublist in successful_train_jobs for item in sublist]  # flatten
 
     # Call a selection method
@@ -292,6 +295,30 @@ def aggregate(deployment_config, **kwargs):
         kwargs['task_instance'].xcom_push(key='successful_jobs', value=get_job_assessment(status))
     else:
         raise NotImplementedError("Only supported aggregation is: 'average'")
+
+
+def algorithm_routing(deployment_config, algorithm_space, **kwargs):
+
+    _globals = get_deployment_config(deployment_config)
+
+    # Get metadata file
+    metadata = get_metadata(_globals, 'TRAIN', kwargs)
+
+    # Assess NULL values presence
+    null_presence = False
+    for key, value in metadata['missing_data_rate'].items():
+        if value > 0:
+            null_presence = True
+            break
+
+    # Route training tasks
+    tasks_to_trigger = list(algorithm_space.keys())
+    for algorithm, value in algorithm_space.items():
+        if null_presence:
+            if not value['null_compatible']:
+                tasks_to_trigger.remove(algorithm)
+
+    return tasks_to_trigger
 
 
 def data_evaluation(deployment_config, dag_type, **kwargs):
