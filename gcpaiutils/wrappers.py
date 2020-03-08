@@ -140,6 +140,7 @@ def selection(deployment_config, train_task_ids=None, selector_class=None, **kwa
     info_dir = make_temp_dir(os.getcwd())
     gcs_credentials = get_gcs_credentials(_globals)
     gcs_client = storage.Client(project=_globals['PROJECT_ID'], credentials=gcs_credentials)
+    gcs_bucket = gcs_client.get_bucket(_globals["MODEL_BUCKET_NAME"])
 
     for job in successful_train_jobs:
         # download in dir with job name
@@ -147,10 +148,9 @@ def selection(deployment_config, train_task_ids=None, selector_class=None, **kwa
         os.mkdir(tmp_dir_name)
 
         # Import from GCS
-        gcs_blob_list = list(gcs_client.list_blobs(bucket_or_name=_globals["MODEL_BUCKET_NAME"],
-                                                   prefix=os.path.join(get_user(kwargs), get_problem(kwargs),
-                                                                       get_version(kwargs), "MODELS",
-                                                                       job.replace("train_", ""), "info")))
+        gcs_blob_list = list(gcs_bucket.list_blobs(prefix=os.path.join(get_user(kwargs), get_problem(kwargs),
+                                                   get_version(kwargs), "MODELS",
+                                                   job.replace("train_", ""), "info")))
 
         for gcs_source_blob in gcs_blob_list:
             local_destination = os.path.join(info_dir, job.replace("train_", ""), gcs_source_blob.name.split("/")[-1])
@@ -402,9 +402,9 @@ def notify_dag_status(deployment_config, dag_type, status, **kwargs):
 
     local_status_file = os.path.join(status_dir, '{}.json'.format(status))
     with open(local_status_file, 'w') as f:
-        json.dumps('0', f)
+        json.dump('0', f)
 
-    gcs_destination_bucket = gcs_client.get_bucket(bucket_or_name=_globals["MODEL_BUCKET_NAME"])
+    gcs_destination_bucket = gcs_client.get_bucket(_globals["MODEL_BUCKET_NAME"])
     gcs_destination_blob = '/'.join([get_user(kwargs), get_problem(kwargs), get_version(kwargs), "STATUS",
                                      dag_type, local_status_file.split("/")[-1]])
     b = storage.blob.Blob(gcs_destination_blob, gcs_destination_bucket)

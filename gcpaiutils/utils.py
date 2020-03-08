@@ -116,7 +116,7 @@ def get_metadata(_globals, dag_type, kwargs):
     # Fetch metadata from GCS
     gcs_credentials = get_gcs_credentials(_globals)
     gcs_client = storage.Client(project=_globals['PROJECT_ID'], credentials=gcs_credentials)
-    blob = storage.Blob(metadata_uri, gcs_client.get_bucket(bucket_or_name=_globals["MODEL_BUCKET_NAME"]))
+    blob = storage.Blob(metadata_uri, gcs_client.get_bucket(_globals["MODEL_BUCKET_NAME"]))
     blob.download_to_filename(metadata_local_filename, client=gcs_client)
 
     # Load in memory & clean-up
