@@ -100,8 +100,9 @@ class JobSpecHandler:
 
         # job name must start with a letter and string must be lowercase
         try:
-            return prefix + '_' + self.request_ids['user'].lower() + '_' + self.request_ids['problem'].lower() + '_' + \
-                   self.request_ids['version'].lower() + '_' + \
+            return prefix + '_' + self.request_ids['user'].lower().replace("-", "") + '_' + \
+                   self.request_ids['problem'].lower().replace("-", "") + '_' + \
+                   self.request_ids['version'].lower().replace("-", "") + '_' + \
                    year + month + day + hour + minute + second + '_' + self.algorithm
         except KeyError:
             return 'anonymous' + '_' + prefix + year + month + day + hour + minute + second + '_' + self.algorithm
