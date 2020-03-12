@@ -411,7 +411,7 @@ def notify_dag_status(deployment_config, dag_type, status, **kwargs):
     b.upload_from_filename(local_status_file, client=gcs_client)
 
     client_output_uri = kwargs['task_instance'].xcom_pull(task_ids=['retrieve_params'], key='output_uri')[0]
-    if client_output_uri != 'None':  # TODO: replace with is not None. How to avoid string conversion?
+    if client_output_uri is not None:
         # Notify client
         client_output_uri_shards = client_output_uri.split("/")
         client_bucket_name = client_output_uri_shards[2]
