@@ -209,15 +209,15 @@ def score(deployment_config, use_proba=None, **kwargs):
 
     gcs_credentials = get_gcs_credentials(_globals)
     gcs_client = storage.Client(project=_globals['PROJECT_ID'], credentials=gcs_credentials)
+    gcs_bucket = gcs_client.get_bucket(_globals["MODEL_BUCKET_NAME"])
     submitted_scoring_jobs = {}
     for info in selected_info:
 
         currentInput = scoreInput.copy()
         model_path = get_model_path_from_info_path(info)
         algo = '_'.join(model_path.split("/")[0].split("_")[4:])
-        blobs = list(gcs_client.list_blobs(_globals["MODEL_BUCKET_NAME"],
-                                           prefix=os.path.join(get_user(kwargs), get_problem(kwargs),
-                                                               get_version(kwargs), "MODELS", model_path)))  # unique id
+        blobs = list(gcs_bucket.list_blobs(prefix=os.path.join(get_user(kwargs), get_problem(kwargs),
+                                           get_version(kwargs), "MODELS", model_path)))  # unique id
         currentInput["modelFile"] = os.path.join(_globals["MODEL_BUCKET_ADDRESS"], blobs[0].name)
         currentInput["outputDir"] = "gs://{}/{}/{}/{}/RESULTS_STAGING/{}/".format(_globals["MODEL_BUCKET_NAME"],
                                                                                   get_user(kwargs), get_problem(kwargs),

@@ -170,9 +170,9 @@ def get_selector(_globals, kwargs):
     selector_blob = os.path.join(get_user(kwargs), get_problem(kwargs), get_version(kwargs))
     gcs_credentials = get_gcs_credentials(_globals)
     gcs_client = storage.Client(project=_globals['PROJECT_ID'], credentials=gcs_credentials)
+    gcs_bucket = gcs_client.get_bucket(_globals["MODEL_BUCKET_NAME"])
     gcs_blob_list = [blob for blob
-                     in list(gcs_client.list_blobs(bucket_or_name=_globals["MODEL_BUCKET_NAME"],
-                                                   prefix=os.path.join(selector_blob, "SELECTOR")))
+                     in list(gcs_bucket.list_blobs(prefix=os.path.join(selector_blob, "SELECTOR")))
                      if blob.name[-1] != "/"]
 
     local_dir = make_temp_dir(os.getcwd())
