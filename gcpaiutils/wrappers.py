@@ -116,13 +116,14 @@ def train(deployment_config, atom=None, hyperspace=None, **kwargs):
     kwargs['task_instance'].xcom_push(key='successful_jobs', value=get_job_assessment(status))
 
 
-def selection(deployment_config, train_task_ids=None, selector_class=None, **kwargs):
+def selection(deployment_config, train_task_ids=None, selector_class=None, evaluation_metric=None, **kwargs):
     """
     Selects among trained models those that will make it to production. Compute is done locally.
 
     :param deployment_config: YAML file containing all deployment variables
     :param train_task_ids: list of training tasks that represent the universe on which selection takes place
     :param selector_class: customized BaseSelector object
+    :param evaluation_metric: metric used in model selection
     :param kwargs:
     :return:
     """
@@ -165,7 +166,7 @@ def selection(deployment_config, train_task_ids=None, selector_class=None, **kwa
         rmtree(tmp_dir_name)
 
     # make sure selector_class is imported in this module
-    S = selector_class(deployment_config=deployment_config, model_dir=info_dir,
+    S = selector_class(deployment_config=deployment_config, model_dir=info_dir, evaluation_metric=evaluation_metric,
                        problem_type='classification', n_class=5, verbose=True)
     dest_uri = "gs://{}/{}/{}/{}/SELECTOR/".format(_globals["MODEL_BUCKET_NAME"],
                                                    get_user(kwargs), get_problem(kwargs),
