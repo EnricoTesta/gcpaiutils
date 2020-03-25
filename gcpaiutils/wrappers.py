@@ -116,7 +116,7 @@ def train(deployment_config, atom=None, hyperspace=None, **kwargs):
     kwargs['task_instance'].xcom_push(key='successful_jobs', value=get_job_assessment(status))
 
 
-def selection(deployment_config, train_task_ids=None, selector_class=None, evaluation_metric=None, **kwargs):
+def selection(deployment_config, train_task_ids=None, selector_class=None, **kwargs):
     """
     Selects among trained models those that will make it to production. Compute is done locally.
 
@@ -128,6 +128,8 @@ def selection(deployment_config, train_task_ids=None, selector_class=None, evalu
     :return:
     """
     _globals = get_deployment_config(deployment_config)
+
+    evaluation_metric = kwargs['task_instance'].xcom_pull(task_ids='retrieve_params', key='evaluation_metric')
 
     successful_train_jobs = []
     for train_task in train_task_ids:
