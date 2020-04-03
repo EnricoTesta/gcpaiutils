@@ -173,11 +173,11 @@ def get_selector(_globals, kwargs):
     gcs_bucket = gcs_client.get_bucket(_globals["MODEL_BUCKET_NAME"])
     gcs_blob_list = [blob for blob
                      in list(gcs_bucket.list_blobs(prefix=os.path.join(selector_blob, "SELECTOR")))
-                     if blob.name[-1] != "/"]
+                     if blob.name.endswith(".json")]
 
     local_dir = make_temp_dir(os.getcwd())
     if len(gcs_blob_list) > 1:
-        raise ValueError("More than one selection file found in URI.")
+        raise ValueError("More than one JSON selection file found in URI.")
     local_destination = os.path.join(local_dir, gcs_blob_list[0].name.split("/")[-1])
     gcs_blob_list[0].download_to_filename(local_destination, client=gcs_client)
     return local_dir, local_destination
