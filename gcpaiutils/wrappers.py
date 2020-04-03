@@ -151,9 +151,11 @@ def selection(deployment_config, train_task_ids=None, selector_class=None, **kwa
         os.mkdir(tmp_dir_name)
 
         # Import from GCS
-        gcs_blob_list = list(gcs_bucket.list_blobs(prefix=os.path.join(get_user(kwargs), get_problem(kwargs),
-                                                   get_version(kwargs), "MODELS",
-                                                   job.replace("train_", ""), "info")))
+        path_prefix = os.path.join(get_user(kwargs), get_problem(kwargs), get_version(kwargs), "MODELS",
+                                   job.replace("train_", ""))
+        gcs_info_blob_list = list(gcs_bucket.list_blobs(prefix=os.path.join(path_prefix, "info")))
+        gcs_stratified_info_blob_list = list(gcs_bucket.list_blobs(prefix=os.path.join(path_prefix, "stratified_info")))
+        gcs_blob_list = gcs_info_blob_list + gcs_stratified_info_blob_list
 
         for gcs_source_blob in gcs_blob_list:
             local_destination = os.path.join(info_dir, job.replace("train_", ""), gcs_source_blob.name.split("/")[-1])
