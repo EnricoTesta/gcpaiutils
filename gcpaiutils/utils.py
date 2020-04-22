@@ -176,8 +176,10 @@ def get_selector(_globals, kwargs):
                      if blob.name.endswith(".json")]
 
     local_dir = make_temp_dir(os.getcwd())
-    if len(gcs_blob_list) > 1:
-        raise ValueError("More than one JSON selection file found in URI.")
-    local_destination = os.path.join(local_dir, gcs_blob_list[0].name.split("/")[-1])
-    gcs_blob_list[0].download_to_filename(local_destination, client=gcs_client)
-    return local_dir, local_destination
+    local_destination_list = []
+    for blob in gcs_blob_list:  # allow multiple selection strategies
+        shards = blob.name.split("/")
+        os.makedirs(os.path.join(local_dir, shards[-2]))
+        local_destination_list.append(os.path.join(local_dir, shards[-2], shards[-1]))
+        blob.download_to_filename(local_destination_list[-1], client=gcs_client)
+    return local_dir, local_destination_list
