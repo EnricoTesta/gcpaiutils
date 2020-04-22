@@ -116,14 +116,13 @@ def train(deployment_config, atom=None, hyperspace=None, **kwargs):
     kwargs['task_instance'].xcom_push(key='successful_jobs', value=get_job_assessment(status))
 
 
-def selection(deployment_config, train_task_ids=None, selector_class=None, **kwargs):
+def selection(deployment_config, train_task_ids=None, selector_class_dict=None, **kwargs):
     """
     Selects among trained models those that will make it to production. Compute is done locally.
 
     :param deployment_config: YAML file containing all deployment variables
     :param train_task_ids: list of training tasks that represent the universe on which selection takes place
-    :param selector_class: customized BaseSelector object
-    :param evaluation_metric: metric used in model selection
+    :param selector_class_dict: dict of customized BaseSelector object. Dict keys are strategy names.
     :param kwargs:
     :return:
     """
@@ -169,13 +168,16 @@ def selection(deployment_config, train_task_ids=None, selector_class=None, **kwa
         # remove dir
         rmtree(tmp_dir_name)
 
-    # make sure selector_class is imported in this module
-    S = selector_class(deployment_config=deployment_config, model_dir=info_dir, evaluation_metric=evaluation_metric,
-                       problem_type='classification', n_class=5, verbose=True)
-    dest_uri = "gs://{}/{}/{}/{}/SELECTOR/".format(_globals["MODEL_BUCKET_NAME"],
-                                                   get_user(kwargs), get_problem(kwargs),
-                                                   get_version(kwargs))
-    selected_info = S.select(destination_uri=dest_uri)
+    # make sure selector_class_dict is imported in this module
+    root_dest_uri = "gs://{}/{}/{}/{}/SELECTOR/".format(_globals["MODEL_BUCKET_NAME"],
+                                                        get_user(kwargs), get_problem(kwargs),
+                                                        get_version(kwargs))
+    selected_info = {}
+    for key, cls in selector_class_dict.items():
+        S = cls(deployment_config=deployment_config, model_dir=info_dir, evaluation_metric=evaluation_metric,
+                problem_type='classification', n_class=5, verbose=True)
+        dest_uri = root_dest_uri + key + "/"  # dict key is strategy name
+        selected_info[key] = S.select(destination_uri=dest_uri)
     rmtree(info_dir)
     kwargs['task_instance'].xcom_push(key='selected_info', value=selected_info)
 
@@ -204,11 +206,14 @@ def score(deployment_config, use_proba=None, **kwargs):
         "scaleTier": "CUSTOM"
     }
 
-    local_dir, local_destination = get_selector(_globals, kwargs)
+    local_dir, local_destinations = get_selector(_globals, kwargs)
 
-    with open(local_destination, 'r') as f:
-        selector_dict = json.load(f)
-    selected_info = selector_dict['selection']
+    selected_info = {}
+    for destination in local_destinations:
+
+        with open(destination, 'r') as f:
+            selector_dict = json.load(f)
+        selected_info[destination.split("/")[-2]] = selector_dict['selection']  # key == strategy name
 
     rmtree(local_dir)
 
@@ -216,33 +221,36 @@ def score(deployment_config, use_proba=None, **kwargs):
     gcs_client = storage.Client(project=_globals['PROJECT_ID'], credentials=gcs_credentials)
     gcs_bucket = gcs_client.get_bucket(_globals["MODEL_BUCKET_NAME"])
     submitted_scoring_jobs = {}
-    for info in selected_info:
+    for strategy_name, value in selected_info.items():
+        for info in value:
 
-        currentInput = scoreInput.copy()
-        model_path = get_model_path_from_info_path(info)
-        algo = '_'.join(model_path.split("/")[0].split("_")[4:])
-        blobs = list(gcs_bucket.list_blobs(prefix=os.path.join(get_user(kwargs), get_problem(kwargs),
-                                           get_version(kwargs), "MODELS", model_path)))  # unique id
-        currentInput["modelFile"] = os.path.join(_globals["MODEL_BUCKET_ADDRESS"], blobs[0].name)
-        currentInput["outputDir"] = "gs://{}/{}/{}/{}/RESULTS_STAGING/{}/".format(_globals["MODEL_BUCKET_NAME"],
-                                                                                  get_user(kwargs), get_problem(kwargs),
-                                                                                  get_version(kwargs),
-                                                                                  model_path.split("/")[0])
-        currentInput["masterType"] = get_hardware_config(algo, metadata['size'])
+            currentInput = scoreInput.copy()
+            model_path = get_model_path_from_info_path(info)
+            algo = '_'.join(model_path.split("/")[0].split("_")[4:])
+            blobs = list(gcs_bucket.list_blobs(prefix=os.path.join(get_user(kwargs), get_problem(kwargs),
+                                               get_version(kwargs), "MODELS", model_path)))  # unique id
+            currentInput["modelFile"] = os.path.join(_globals["MODEL_BUCKET_ADDRESS"], blobs[0].name)
+            currentInput["outputDir"] = "gs://{}/{}/{}/{}/RESULTS_STAGING/{}/{}/".format(_globals["MODEL_BUCKET_NAME"],
+                                                                                         get_user(kwargs),
+                                                                                         get_problem(kwargs),
+                                                                                         get_version(kwargs),
+                                                                                         strategy_name,
+                                                                                         model_path.split("/")[0])
+            currentInput["masterType"] = get_hardware_config(algo, metadata['size'])
 
-        S = ScoreJobSpecHandler(algorithm=algo,
-                                deployment_config=deployment_config,
-                                inputs=currentInput, request_ids={'user': get_user(kwargs),
-                                                                  'problem': get_problem(kwargs),
-                                                                  'version': get_version(kwargs)})
-        S.create_job_specs()
-        T = ScoreJobHandler(deployment_config=deployment_config, job_executor='mlapi')
-        T.submit_job(S.job_specs)
-        if T.success:
-            submitted_scoring_jobs[S.job_specs['jobId']] = model_path.split("/")[0]  # corresponding train job id
-            logging.info("Score request successful: {}".format(S.job_specs['jobId']))
-        else:
-            raise ValueError("Unable to submit score job.")
+            S = ScoreJobSpecHandler(algorithm=algo,
+                                    deployment_config=deployment_config,
+                                    inputs=currentInput, request_ids={'user': get_user(kwargs),
+                                                                      'problem': get_problem(kwargs),
+                                                                      'version': get_version(kwargs)})
+            S.create_job_specs()
+            T = ScoreJobHandler(deployment_config=deployment_config, job_executor='mlapi')
+            T.submit_job(S.job_specs)
+            if T.success:
+                submitted_scoring_jobs[S.job_specs['jobId']] = model_path.split("/")[0]  # corresponding train job id
+                logging.info("Score request successful: {}".format(S.job_specs['jobId']))
+            else:
+                raise ValueError("Unable to submit score job.")
 
     # Retrieve scoring
     status = poll(deployment_config, TIME_INTERVAL, submitted_scoring_jobs)
@@ -259,47 +267,58 @@ def aggregate(deployment_config, **kwargs):
     """
 
     _globals = get_deployment_config(deployment_config)
-    local_dir, local_destination = get_selector(_globals, kwargs)
+    local_dir, local_destinations = get_selector(_globals, kwargs)
 
-    with open(local_destination, 'r') as f:
-        selector_dict = json.load(f)
+    selected_info = {}
+    for destination in local_destinations:
+        with open(destination, 'r') as f:
+            selector_dict = json.load(f)
+        selected_info[destination.split("/")[-2]] = selector_dict
     rmtree(local_dir)
 
     # Get metadata file
     metadata = get_metadata(_globals, 'SCORE', kwargs)
 
     scoreInput = {
-        "scoreDir": "gs://{}/{}/{}/{}/RESULTS_STAGING/".format(_globals["MODEL_BUCKET_NAME"],
-                                                               get_user(kwargs),
-                                                               get_problem(kwargs),
-                                                               get_version(kwargs)),
-        "outputDir": kwargs['task_instance'].xcom_pull(task_ids='retrieve_params', key='output_uri'),
         "masterType": get_hardware_config('aggregator', metadata['size']),
         "scaleTier": "CUSTOM"
     }
 
-    if selector_dict['aggregation'] == 'average':
+    root_output_dir = kwargs['task_instance'].xcom_pull(task_ids='retrieve_params', key='output_uri')
 
-        S = PostprocessJobSpecHandler(algorithm='aggregator',
-                                      deployment_config=deployment_config,
-                                      inputs=scoreInput, request_ids={'user': get_user(kwargs),
-                                                                      'problem': get_problem(kwargs),
-                                                                      'version': get_version(kwargs)})
-        S.create_job_specs()
-        T = PostprocessJobHandler(deployment_config=deployment_config, job_executor='mlapi')
-        T.submit_job(S.job_specs)
-        submitted_postprocess_jobs = {}
-        if T.success:
-            submitted_postprocess_jobs[S.job_specs['jobId']] = S.job_specs['jobId']  # corresponding train job id
-            logging.info("Postprocess request successful: {}".format(S.job_specs['jobId']))
+    for strategy_name, value in selected_info.items():
+        if value['aggregation'] == 'average':
+
+            current_score_input = scoreInput.copy()
+
+            current_score_input["scoreDir"] = "gs://{}/{}/{}/{}/RESULTS_STAGING/{}/".format(_globals["MODEL_BUCKET_NAME"],
+                                                                                            get_user(kwargs),
+                                                                                            get_problem(kwargs),
+                                                                                            get_version(kwargs),
+                                                                                            strategy_name)
+
+            current_score_input["outputDir"] = root_output_dir + strategy_name + "/"
+
+            S = PostprocessJobSpecHandler(algorithm='aggregator',
+                                          deployment_config=deployment_config,
+                                          inputs=current_score_input, request_ids={'user': get_user(kwargs),
+                                                                                   'problem': get_problem(kwargs),
+                                                                                   'version': get_version(kwargs)})
+            S.create_job_specs()
+            T = PostprocessJobHandler(deployment_config=deployment_config, job_executor='mlapi')
+            T.submit_job(S.job_specs)
+            submitted_postprocess_jobs = {}
+            if T.success:
+                submitted_postprocess_jobs[S.job_specs['jobId']] = S.job_specs['jobId']  # corresponding train job id
+                logging.info("Postprocess request successful: {}".format(S.job_specs['jobId']))
+            else:
+                raise ValueError("Unable to submit postprocess job.")
+
+            # Retrieve scoring
+            status = poll(deployment_config, TIME_INTERVAL, submitted_postprocess_jobs)
+            kwargs['task_instance'].xcom_push(key='successful_jobs', value=get_job_assessment(status))
         else:
-            raise ValueError("Unable to submit postprocess job.")
-
-        # Retrieve scoring
-        status = poll(deployment_config, TIME_INTERVAL, submitted_postprocess_jobs)
-        kwargs['task_instance'].xcom_push(key='successful_jobs', value=get_job_assessment(status))
-    else:
-        raise NotImplementedError("Only supported aggregation is: 'average'")
+            raise NotImplementedError("Only supported aggregation is: 'average'")
 
 
 def algorithm_routing(deployment_config, algorithm_space, **kwargs):
