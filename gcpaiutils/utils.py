@@ -49,6 +49,7 @@ def get_atom_name_from_dir(job_dir):
 
 
 def get_model_path_from_info_path(info_path):
+    info_path = info_path.replace("stratified_", "")  # don't mess up with model URI
     shards = info_path.split(".")[0].split("_")
     idx = shards.index("info")
     return '_'.join(shards[0:idx]) + '/model_' + '_'.join(shards[idx+1:]) + ".pkl"
