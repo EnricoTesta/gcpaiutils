@@ -2,7 +2,7 @@ from gcpaiutils.handler import JobHandler, JobSpecHandler
 
 
 JOB_SPECS_GLOBAL_ARGS = ['scaleTier', 'region', 'modelDir']
-JOB_SPECS_DEFAULT_ARGS = ['args', 'trainFiles']
+JOB_SPECS_DEFAULT_ARGS = ['trainFiles']
 
 
 class TrainJobHandler(JobHandler):
@@ -28,7 +28,7 @@ class TrainJobHandler(JobHandler):
 
         # Map job_spec information to docker entrypoint kwargs
         job_spec['trainingInput']['masterConfig'] = {'imageUri': job_spec['trainingInput'].pop('imageUri')}
-        if job_spec['trainingInput']['args'] is None:
+        if 'args' not in job_spec['trainingInput'].keys() or job_spec['trainingInput']['args'] is None:
             job_spec['trainingInput']['args'] = []
         else:
             for idx, item in enumerate(job_spec['trainingInput']['args']):
