@@ -5,6 +5,8 @@ ATOMS:
     - '{{CONTAINERS_ROOT_URL}}/{{PROJECT_ID}}/classification_autosklearn:class_askl'
   class_lgbm:
     - '{{CONTAINERS_ROOT_URL}}/{{PROJECT_ID}}/classification_lgbm:class_lgbm'
+  class_rf:
+    - '{{CONTAINERS_ROOT_URL}}/{{PROJECT_ID}}/classification_rf:class_rf'
   class_xgb:
     - '{{CONTAINERS_ROOT_URL}}/{{PROJECT_ID}}/classification_xgboost:class_xgb'
   class_dummy:
@@ -19,6 +21,8 @@ SCORING:
   class_xgb:
     - '{{CONTAINERS_ROOT_URL}}/{{PROJECT_ID}}/scorer_xgboost:scorer_xgb'
   class_lgbm:
+    - '{{CONTAINERS_ROOT_URL}}/{{PROJECT_ID}}/scorer_lightgbm:scorer_lgbm'
+  class_rf:
     - '{{CONTAINERS_ROOT_URL}}/{{PROJECT_ID}}/scorer_lightgbm:scorer_lgbm'
   class_lda:
     - '{{CONTAINERS_ROOT_URL}}/{{PROJECT_ID}}/scorer_sklearn:scorer_skl'
