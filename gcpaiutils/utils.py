@@ -56,27 +56,48 @@ def get_model_path_from_info_path(info_path):
 
 
 def get_hardware_config(atom, data_size):
+    """
+    Machine types.
+    Characteristics double every time last digit in the name doubles. Persistent disks are priced separately.
+    Prices are for standard machine types and zone us-central1 (Iowa). E2 machine-types currently not supported by AI Platform.
+    Smallest machine types allowed by AI Platforms are n1-standard-4, n1-highmem-2, n1-highcpu-16.
+        - E2: cost-optimized. Small to medium workloads that require at most 16 vCPUs but do not require local SSDs or GPUs are an ideal fit.
+            * e2-standard-2: 2 vCPU / 8 GB. Price: ~ 0.068 USD/h
+            * e2-highmem-2: 2 vCPU / 16 GB. Price: ~ 0.091 USD/h
+            * e2-highcpu-2: 2 vCPU / 2 GB. Price: ~ 0.05 USD/h
+        - N1: 1st generation general-purpose. (30%-100% more expensive than E2 machines)
+            * n1-standard-1: 1 vCPU / 3.75 GB. Price: ~ 0.048 USD/h
+            * n1-highmem-2: 2 vCPU / 13 GB. Price: ~ 0.119 USD/h
+            * n1-highcpu-2: 2 vCPU / 1.8 GB. Price: ~ 0.071 USD/h
+
+
+    :param atom:
+    :param data_size:
+    :return:
+    """
     if atom in ["class_skl_logreg", "class_lda", "class_qda"]:
         if data_size <= 0.1:
-            return "n1-standard-4"
+            return "n1-highmem-2" # "n1-standard-4"
         elif data_size <= 1:
-            return "n1-standard-8"
+            return "n1-highmem-2" # "n1-standard-8"
         elif data_size <= 3:
-            return "n1-standard-8"
+            return "n1-highmem-2" # "n1-standard-8"
         else:
             raise(ValueError, "Data size not handled: %s GB." % data_size)
     elif atom in ["class_dummy", "aggregator"]:
         if data_size <= 0.5:
-            return "n1-standard-4"
+            return "n1-highmem-2" # "n1-standard-4"
         elif data_size <= 1:
-            return "n1-standard-8"
+            return "n1-highmem-2" # "n1-standard-8"
         elif data_size <= 3:
-            return "n1-standard-8"
+            return "n1-highmem-2" # "n1-standard-8"
         else:
             raise(ValueError, "Data size not handled: %s GB." % data_size)
     elif atom in ["class_xgb", "class_lgbm", "class_rf"]:
         if data_size <= 0.1:
-            return "n1-standard-4"
+            return "n1-highmem-2" # "n1-standard-4"
+        elif data_size <= 1:
+            return "n1-standard-8" # "n1-standard-8"
         elif data_size <= 3:
             return "n1-standard-8"
         else:
