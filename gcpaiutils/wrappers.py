@@ -286,6 +286,7 @@ def aggregate(deployment_config, **kwargs):
 
     root_output_dir = kwargs['task_instance'].xcom_pull(task_ids='retrieve_params', key='output_uri')
 
+    submitted_postprocess_jobs_list = []
     for strategy_name, value in selected_info.items():
         if not value['selection']:
             continue
@@ -316,11 +317,16 @@ def aggregate(deployment_config, **kwargs):
             else:
                 raise ValueError("Unable to submit postprocess job.")
 
-            # Retrieve scoring
-            status = poll(deployment_config, TIME_INTERVAL, submitted_postprocess_jobs)
-            kwargs['task_instance'].xcom_push(key='successful_jobs', value=get_job_assessment(status))
+            submitted_postprocess_jobs_list.append(submitted_postprocess_jobs)
         else:
             raise NotImplementedError("Only supported aggregation is: 'average'")
+
+    # Retrieve scoring
+    status_list = []
+    for item in submitted_postprocess_jobs_list:
+        status = poll(deployment_config, TIME_INTERVAL, item)
+        status_list.append(get_job_assessment(status))
+    kwargs['task_instance'].xcom_push(key='successful_jobs', value=status_list)
 
 
 def algorithm_routing(deployment_config, algorithm_space, **kwargs):
