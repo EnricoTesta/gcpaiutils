@@ -287,6 +287,8 @@ def aggregate(deployment_config, **kwargs):
     root_output_dir = kwargs['task_instance'].xcom_pull(task_ids='retrieve_params', key='output_uri')
 
     for strategy_name, value in selected_info.items():
+        if not value['selection']:
+            continue
         if value['aggregation'] == 'average':
 
             current_score_input = scoreInput.copy()
@@ -356,7 +358,7 @@ def data_evaluation(deployment_config, dag_type, **kwargs):
     preprocess_input = {'trainFiles': data_path,
                         'modelDir': model_dir,
                         'scaleTier': 'CUSTOM',
-                        'masterType': 'n1-highmem-4' # 4 vCPUs / 26 GB RAM  --- 'n1-highmem-8'  # 8 vCPUs / 52 GB RAM
+                        'masterType': 'n1-highmem-8' # 8 vCPUs / 52 GB RAM  --- 'n1-highmem-4'  # 4 vCPUs / 26 GB RAM
                         }
 
     S = PreprocessJobSpecHandler(deployment_config=deployment_config,
