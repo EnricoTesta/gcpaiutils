@@ -15,6 +15,8 @@ ATOMS:
     - '{{CONTAINERS_ROOT_URL}}/{{PROJECT_ID}}/classification_lda:class_lda'
   class_qda:
     - '{{CONTAINERS_ROOT_URL}}/{{PROJECT_ID}}/classification_qda:class_qda'
+  class_ffnn:
+    - '{{CONTAINERS_ROOT_URL}}/{{PROJECT_ID}}/classification_ffnn:class_ffnn'
 SCORING:
   class_skl_logreg:
     - '{{CONTAINERS_ROOT_URL}}/{{PROJECT_ID}}/scorer_sklearn:scorer_skl'
@@ -28,6 +30,8 @@ SCORING:
     - '{{CONTAINERS_ROOT_URL}}/{{PROJECT_ID}}/scorer_sklearn:scorer_skl'
   class_qda:
     - '{{CONTAINERS_ROOT_URL}}/{{PROJECT_ID}}/scorer_sklearn:scorer_skl'
+  class_ffnn:
+    - '{{CONTAINERS_ROOT_URL}}/{{PROJECT_ID}}/scorer_tensorflow:scorer_tf'
 PREPROCESS:
   encoder_str2int:
     - '{{CONTAINERS_ROOT_URL}}/{{PROJECT_ID}}/encoder_string2int:encoder_str2int'

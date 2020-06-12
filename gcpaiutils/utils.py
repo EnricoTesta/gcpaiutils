@@ -69,7 +69,8 @@ def get_hardware_config(atom, data_size):
             * n1-standard-1: 1 vCPU / 3.75 GB. Price: ~ 0.048 USD/h
             * n1-highmem-2: 2 vCPU / 13 GB. Price: ~ 0.119 USD/h
             * n1-highcpu-2: 2 vCPU / 1.8 GB. Price: ~ 0.071 USD/h
-
+        - GPU: legacy GPU-accelerated machines.
+            * standard_gpu: 8 vCPU / 30 GB / 1 NVIDIA Tesla K80. Price: ~ 0.8300 USD/h
 
     :param atom:
     :param data_size:
@@ -81,7 +82,7 @@ def get_hardware_config(atom, data_size):
         elif data_size <= 1:
             return "n1-highmem-2" # "n1-standard-8"
         elif data_size <= 3:
-            return "n1-highmem-2" # "n1-standard-8"
+            return "n1-standard-8" # "n1-standard-8"
         else:
             raise(ValueError, "Data size not handled: %s GB." % data_size)
     elif atom in ["class_dummy", "aggregator"]:
@@ -90,7 +91,7 @@ def get_hardware_config(atom, data_size):
         elif data_size <= 1:
             return "n1-highmem-2" # "n1-standard-8"
         elif data_size <= 3:
-            return "n1-highmem-2" # "n1-standard-8"
+            return "n1-standard-8" # "n1-standard-8"
         else:
             raise(ValueError, "Data size not handled: %s GB." % data_size)
     elif atom in ["class_xgb", "class_lgbm", "class_rf"]:
@@ -100,6 +101,11 @@ def get_hardware_config(atom, data_size):
             return "n1-standard-8" # "n1-standard-8"
         elif data_size <= 3:
             return "n1-standard-8"
+        else:
+            raise (ValueError, "Data size not handled: %s GB." % data_size)
+    elif atom in ["class_ffnn"]:
+        if data_size <= 3:
+            return "standard_gpu"
         else:
             raise (ValueError, "Data size not handled: %s GB." % data_size)
     else:
