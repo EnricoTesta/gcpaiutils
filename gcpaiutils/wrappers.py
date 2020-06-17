@@ -66,13 +66,13 @@ def poll(deployment_config, time_interval, jobs):
     return status
 
 
-def train(deployment_config, atom=None, hyperspace=None, **kwargs):
+def train(deployment_config, atom=None, atom_params=None, hyperspace=None, **kwargs):
     """
     Submits train job to GCP AI Platform and waits for completion. Compute is done remotely.
 
     :param deployment_config: YAML file containing all deployment variables
     :param atom: algorithm name as tagged in Container Registry (atom)
-    :param master_type: GCP VM type to use during training
+    :param atom_params: user-specified parameters to configurate atom (useful to overwrite atom defaults with no tuning)
     :param hyperspace: hyper-parameter tuning configuration
     :param kwargs:
     :return:
@@ -88,6 +88,12 @@ def train(deployment_config, atom=None, hyperspace=None, **kwargs):
         "modelDir": model_dir,
         "scaleTier": "CUSTOM"
     }
+
+    # Add user-specified parameters
+    if isinstance(atom_params, dict):
+        trainingInput['args'] = []
+        for k, v in atom_params.items():
+            trainingInput['args'] += [k, str(v)]
 
     # Get metadata file
     metadata = get_metadata(_globals, 'TRAIN', kwargs)
