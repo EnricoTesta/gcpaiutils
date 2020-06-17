@@ -229,7 +229,19 @@ def score(deployment_config, use_proba=None, **kwargs):
             algo = '_'.join(model_path.split("/")[0].split("_")[4:])
             blobs = list(gcs_bucket.list_blobs(prefix=os.path.join(get_user(kwargs), get_problem(kwargs),
                                                get_version(kwargs), "MODELS", model_path)))  # unique id
-            currentInput["modelFile"] = os.path.join(_globals["MODEL_BUCKET_ADDRESS"], blobs[0].name)
+            if len(blobs) == 1:
+                # model is a file
+                currentInput["modelFile"] = os.path.join(_globals["MODEL_BUCKET_ADDRESS"], blobs[0].name)
+            elif len(blobs) > 1:
+                # model is not a file but a folder (multiple files)
+                currentInput["modelFile"] = os.path.join(_globals["MODEL_BUCKET_ADDRESS"],
+                                                         '/'.join(blobs[0].name.split("/")[0:-1]))
+            else:
+                raise FileNotFoundError("Could not find any blob matching %s" % os.path.join(get_user(kwargs),
+                                                                                             get_problem(kwargs),
+                                                                                             get_version(kwargs),
+                                                                                             "MODELS",
+                                                                                             model_path))
             currentInput["outputDir"] = "gs://{}/{}/{}/{}/RESULTS_STAGING/{}/{}/".format(_globals["MODEL_BUCKET_NAME"],
                                                                                          get_user(kwargs),
                                                                                          get_problem(kwargs),
