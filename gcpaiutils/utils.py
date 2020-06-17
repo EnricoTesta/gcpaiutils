@@ -52,7 +52,7 @@ def get_model_path_from_info_path(info_path):
     info_path = info_path.replace("stratified_", "")  # don't mess up with model URI
     shards = info_path.split(".")[0].split("_")
     idx = shards.index("info")
-    return '_'.join(shards[0:idx]) + '/model_' + '_'.join(shards[idx+1:]) + ".pkl"
+    return '_'.join(shards[0:idx]) + '/model_' + '_'.join(shards[idx+1:])
 
 
 def get_hardware_config(atom, data_size):
@@ -105,7 +105,7 @@ def get_hardware_config(atom, data_size):
             raise (ValueError, "Data size not handled: %s GB." % data_size)
     elif atom in ["class_ffnn"]:
         if data_size <= 3:
-            return "standard_gpu"
+            return "n1-standard-8"  # "standard_gpu"
         else:
             raise (ValueError, "Data size not handled: %s GB." % data_size)
     else:
