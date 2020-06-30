@@ -275,7 +275,7 @@ def score(deployment_config, use_proba=None, **kwargs):
     kwargs['task_instance'].xcom_push(key='successful_jobs', value=get_job_assessment(status))
 
 
-def aggregate(deployment_config, **kwargs):
+def aggregate(deployment_config, neutralized=False, **kwargs):
     """
     Aggregate model scoring. Compute is done remotely.
 
@@ -303,6 +303,11 @@ def aggregate(deployment_config, **kwargs):
     }
 
     root_output_dir = kwargs['task_instance'].xcom_pull(task_ids='retrieve_params', key='output_uri')
+    staging_dir = "RESULTS_STAGING"
+    if neutralized:
+        root_output_dir = "/".join(["/".join(root_output_dir.split("/")[0:-2]),
+                                   "NEUTRALIZED_" + root_output_dir.split("/")[-2]]) + "/"
+        staging_dir = "NEUTRALIZED_RESULTS_STAGING"
 
     submitted_postprocess_jobs_list = []
     for strategy_name, value in selected_info.items():
@@ -312,11 +317,12 @@ def aggregate(deployment_config, **kwargs):
 
             current_score_input = scoreInput.copy()
 
-            current_score_input["scoreDir"] = "gs://{}/{}/{}/{}/RESULTS_STAGING/{}/".format(_globals["MODEL_BUCKET_NAME"],
+            current_score_input["scoreDir"] = "gs://{}/{}/{}/{}/{}/{}/".format(_globals["MODEL_BUCKET_NAME"],
                                                                                             get_user(kwargs),
                                                                                             get_problem(kwargs),
                                                                                             get_version(kwargs),
-                                                                                            strategy_name)
+                                                                                            staging_dir,
+                                                                                         strategy_name)
 
             current_score_input["outputDir"] = root_output_dir + strategy_name + "/"
 
