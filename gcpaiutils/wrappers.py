@@ -179,11 +179,11 @@ def selection(deployment_config, train_task_ids=None, selector_class_dict=None, 
                                                         get_user(kwargs), get_problem(kwargs),
                                                         get_version(kwargs))
     selected_info = {}
-    for key, cls in selector_class_dict.items():
-        S = cls(deployment_config=deployment_config, model_dir=info_dir, evaluation_metric=evaluation_metric,
+    for key, d in selector_class_dict.items():
+        S = d['selector'](deployment_config=deployment_config, model_dir=info_dir, evaluation_metric=evaluation_metric,
                 problem_type='classification', n_class=5, verbose=True)
         dest_uri = root_dest_uri + key + "/"  # dict key is strategy name
-        selected_info[key] = S.select(destination_uri=dest_uri)
+        selected_info[key] = S.select(destination_uri=dest_uri, validation_schema=d['validation_schema'])
     rmtree(info_dir)
     kwargs['task_instance'].xcom_push(key='selected_info', value=selected_info)
 
