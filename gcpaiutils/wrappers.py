@@ -122,6 +122,66 @@ def train(deployment_config, atom=None, atom_params=None, hyperspace=None, **kwa
     kwargs['task_instance'].xcom_push(key='successful_jobs', value=get_job_assessment(status))
 
 
+def selection_from_folder(deployment_config, selector_class_dict=None, **kwargs):
+    """
+    Selects among trained models found in MODELS folder those that will make it to production. Compute is done locally.
+
+    :param deployment_config: YAML file containing all deployment variables
+    :param selector_class_dict: dict of customized BaseSelector object. Dict keys are strategy names.
+    :param kwargs:
+    :return:
+    """
+    _globals = get_deployment_config(deployment_config)
+
+    evaluation_metric = kwargs['task_instance'].xcom_pull(task_ids='retrieve_params', key='evaluation_metric')
+
+    # Retrieve blob list from MODELS folder
+    gcs_credentials = get_gcs_credentials(_globals)
+    gcs_client = storage.Client(project=_globals['PROJECT_ID'], credentials=gcs_credentials)
+    gcs_bucket = gcs_client.get_bucket(_globals["MODEL_BUCKET_NAME"])
+
+    # Import from GCS
+    path_prefix = os.path.join(get_user(kwargs), get_problem(kwargs), get_version(kwargs), "MODELS")
+    gcs_all_blobs = list(gcs_bucket.list_blobs(prefix=path_prefix))
+    gcs_info_blob_list = [item for item in gcs_all_blobs if item.name.split("/")[-1].startswith("info")]
+    gcs_stratified_info_blob_list = [item for item in gcs_all_blobs if item.name.split("/")[-1].startswith("stratified_info")]
+    gcs_blob_list = gcs_info_blob_list + gcs_stratified_info_blob_list
+
+    # Call a selection method
+    job_list = set([item.name.split("/")[-2] for item in gcs_blob_list])
+    info_dir = make_temp_dir(os.getcwd())
+    for job in job_list:
+        # download in dir with job name
+        tmp_dir_name = "{}/{}".format(info_dir, job)
+        os.mkdir(tmp_dir_name)
+
+        for gcs_source_blob in [blob for blob in gcs_blob_list if job in blob.name]:
+            local_destination = os.path.join(tmp_dir_name, gcs_source_blob.name.split("/")[-1])
+            gcs_source_blob.download_to_filename(local_destination, client=gcs_client)  # TODO: make this multithread
+
+        # concatenate file name to match GCS flat namespace
+        for file in [f for f in os.listdir(tmp_dir_name) if os.path.isfile(os.path.join(tmp_dir_name, f))]:
+            os.rename(os.path.join(tmp_dir_name, file),
+                      os.path.join(info_dir, '_'.join([job, file])))
+
+        # remove dir
+        rmtree(tmp_dir_name)
+
+    # make sure selector_class_dict is imported in this module
+    root_dest_uri = "gs://{}/{}/{}/{}/SELECTOR/".format(_globals["MODEL_BUCKET_NAME"],
+                                                        get_user(kwargs), get_problem(kwargs),
+                                                        get_version(kwargs))
+
+    selected_info = {}
+    for key, d in selector_class_dict.items():
+        S = d['selector'](deployment_config=deployment_config, model_dir=info_dir, evaluation_metric=evaluation_metric,
+                problem_type='classification', n_class=5, verbose=True)
+        dest_uri = root_dest_uri + key + "/"  # dict key is strategy name
+        selected_info[key] = S.select(destination_uri=dest_uri, validation_schema=d['validation_schema'])
+    rmtree(info_dir)
+    kwargs['task_instance'].xcom_push(key='selected_info', value=selected_info)
+
+
 def selection(deployment_config, train_task_ids=None, selector_class_dict=None, **kwargs):
     """
     Selects among trained models those that will make it to production. Compute is done locally.
