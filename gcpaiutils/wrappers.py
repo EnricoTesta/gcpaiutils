@@ -177,7 +177,9 @@ def selection_from_folder(deployment_config, selector_class_dict=None, **kwargs)
         S = d['selector'](deployment_config=deployment_config, model_dir=info_dir, evaluation_metric=evaluation_metric,
                 problem_type='classification', n_class=5, verbose=True)
         dest_uri = root_dest_uri + key + "/"  # dict key is strategy name
-        selected_info[key] = S.select(destination_uri=dest_uri, validation_schema=d['validation_schema'])
+        if 'kwargs' not in d.keys():
+            d['kwargs'] = {}
+        selected_info[key] = S.select(destination_uri=dest_uri, validation_schema=d['validation_schema'], **d['kwargs'])
     rmtree(info_dir)
     kwargs['task_instance'].xcom_push(key='selected_info', value=selected_info)
 
@@ -243,7 +245,9 @@ def selection(deployment_config, train_task_ids=None, selector_class_dict=None, 
         S = d['selector'](deployment_config=deployment_config, model_dir=info_dir, evaluation_metric=evaluation_metric,
                 problem_type='classification', n_class=5, verbose=True)
         dest_uri = root_dest_uri + key + "/"  # dict key is strategy name
-        selected_info[key] = S.select(destination_uri=dest_uri, validation_schema=d['validation_schema'])
+        if 'kwargs' not in d.keys():
+            d['kwargs'] = {}
+        selected_info[key] = S.select(destination_uri=dest_uri, validation_schema=d['validation_schema'], **d['kwargs'])
     rmtree(info_dir)
     kwargs['task_instance'].xcom_push(key='selected_info', value=selected_info)
 
