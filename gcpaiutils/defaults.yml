@@ -61,6 +61,9 @@ class_qda:
   args:
     - 'reg-param'
     - '0'
+cusreg_lgbm:
+  trainFiles:
+  args:
 encoder_str2int:
   trainFiles: 'gs://my_customers_bucket/DUMMY/SAMPLES/TRAIN_DATA/MAIN/'
   modelFile:

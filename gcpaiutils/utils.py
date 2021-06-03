@@ -94,7 +94,7 @@ def get_hardware_config(atom, data_size):
             return "n1-standard-8" # "n1-standard-8"
         else:
             raise(ValueError, "Data size not handled: %s GB." % data_size)
-    elif atom in ["class_xgb", "class_lgbm", "class_rf"]:
+    elif atom in ["class_xgb", "class_lgbm", "class_rf", "cusreg_lgbm"]:
         if data_size <= 0.1:
             return "n1-highmem-2" # "n1-standard-4"
         elif data_size <= 1:
@@ -104,6 +104,8 @@ def get_hardware_config(atom, data_size):
         else:
             raise (ValueError, "Data size not handled: %s GB." % data_size)
     elif atom in ["class_ffnn"]:
+        if data_size <= 1:
+            return "n1-standard-4"
         if data_size <= 3:
             return "n1-standard-8"  # "standard_gpu"
         else:
