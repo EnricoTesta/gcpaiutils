@@ -11,6 +11,8 @@ ATOMS:
     - '{{CONTAINERS_ROOT_URL}}/{{PROJECT_ID}}/classification_xgboost:class_xgb'
   class_dummy:
     - '{{CONTAINERS_ROOT_URL}}/{{PROJECT_ID}}/classification_dummy:class_dummy'
+  reg_dummy:
+    - '{{CONTAINERS_ROOT_URL}}/{{PROJECT_ID}}/regression_dummy:reg_dummy'
   class_lda:
     - '{{CONTAINERS_ROOT_URL}}/{{PROJECT_ID}}/classification_lda:class_lda'
   class_qda:
