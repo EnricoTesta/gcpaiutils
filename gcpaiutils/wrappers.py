@@ -99,7 +99,7 @@ def train(deployment_config, atom=None, atom_params=None, hyperspace=None, **kwa
     metadata = get_metadata(_globals, 'TRAIN', kwargs)
 
     submitted_jobs = []
-    trainingInput["masterType"] = get_hardware_config(atom, metadata['size'])
+    trainingInput["masterType"] = get_hardware_config(atom=atom, data_size=metadata['size'], scoring=False)
 
     if hypertune:
         trainingInput["hyperparameters"] = hyperspace[atom]
@@ -318,7 +318,7 @@ def score(deployment_config, use_proba=None, **kwargs):
                                                                                          get_version(kwargs),
                                                                                          strategy_name,
                                                                                          model_path.split("/")[0])
-            currentInput["masterType"] = get_hardware_config(algo, metadata['size'])
+            currentInput["masterType"] = get_hardware_config(atom=algo, data_size=metadata['size'], scoring=True)
 
             S = ScoreJobSpecHandler(algorithm=algo,
                                     deployment_config=deployment_config,
@@ -362,7 +362,7 @@ def aggregate(deployment_config, neutralized=False, **kwargs):
     metadata = get_metadata(_globals, 'SCORE', kwargs)
 
     scoreInput = {
-        "masterType": get_hardware_config('aggregator', metadata['size']),
+        "masterType": get_hardware_config(atom='aggregator', data_size=metadata['size']),
         "scaleTier": "CUSTOM"
     }
 

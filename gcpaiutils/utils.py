@@ -55,7 +55,7 @@ def get_model_path_from_info_path(info_path):
     return '_'.join(shards[0:idx]) + '/model_' + '_'.join(shards[idx+1:])
 
 
-def get_hardware_config(atom, data_size):
+def get_hardware_config(atom=None, data_size=None, scoring=False):
     """
     Machine types.
     Characteristics double every time last digit in the name doubles. Persistent disks are priced separately.
@@ -76,7 +76,16 @@ def get_hardware_config(atom, data_size):
     :param data_size:
     :return:
     """
-    if atom in ["class_skl_logreg", "class_lda", "class_qda"]:
+    if atom == "cusreg_lgbm" and scoring is True:
+        if data_size <= 0.1:
+            return "n1-standard-8"
+        elif data_size <= 1:
+            return "n1-highmem-8"
+        elif data_size <= 3:
+            return "n1-highmem-8"
+        else:
+            raise(ValueError, "Data size not handled: %s GB." % data_size)
+    elif atom in ["class_skl_logreg", "class_lda", "class_qda"]:
         if data_size <= 0.1:
             return "n1-highmem-2" # "n1-standard-4"
         elif data_size <= 1:
