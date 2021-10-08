@@ -79,8 +79,7 @@ def train(deployment_config, atom=None, atom_params=None, hyperspace=None, **kwa
     """
     _globals = get_deployment_config(deployment_config)
     hypertune = hyperspace is not None
-    model_dir = "gs://{}/{}/{}/{}/MODELS/".format(_globals["MODEL_BUCKET_NAME"],
-                                                  get_user(kwargs), get_problem(kwargs), get_version(kwargs))
+    model_dir = f"gs://{_globals['MODEL_BUCKET_NAME']}/{get_user(kwargs)}/ACTIVE_MODELS/{get_problem(kwargs)}/"
     train_files = kwargs['task_instance'].xcom_pull(task_ids='retrieve_params', key='data_uri')
 
     trainingInput = {
@@ -441,13 +440,31 @@ def algorithm_routing(deployment_config, algorithm_space, **kwargs):
     return tasks_to_trigger
 
 
-def data_evaluation(deployment_config, dag_type, **kwargs):
+def metadata_check(deployment_config, trained_model_metadata_path, current_data_metadata_path, **kwargs):
+
+    _globals = get_deployment_config(deployment_config)
+    with open(trained_model_metadata_path, 'r') as f:
+        trained_model_metadata = safe_load(f)
+    with open(current_data_metadata_path, 'r') as f:
+        current_data_metadata = safe_load(f)
+
+    relevant_attributes = ['n_cols', 'column_names', 'column_types']
+
+    # Check if metadata linked to trained models matches metadata from current data
+    for attribute in relevant_attributes:
+        if attribute == 'n_cols':
+            assert(trained_model_metadata[attribute] == current_data_metadata[attribute])
+        else:
+            assert(Counter(trained_model_metadata[attribute]) == Counter(current_data_metadata[attribute]))
+
+
+def data_evaluation(deployment_config, **kwargs):
 
     _globals = get_deployment_config(deployment_config)
     data_path = kwargs['task_instance'].xcom_pull(task_ids='retrieve_params', key='data_uri')
-    model_dir = "gs://{}/{}/{}/{}/METADATA/{}/".format(_globals["MODEL_BUCKET_NAME"],
+    model_dir = "gs://{}/{}/{}/{}/METADATA/".format(_globals["MODEL_BUCKET_NAME"],
                                                        get_user(kwargs), get_problem(kwargs),
-                                                       get_version(kwargs), dag_type)
+                                                       get_version(kwargs))
 
     preprocess_input = {'trainFiles': data_path,
                         'modelDir': model_dir,
