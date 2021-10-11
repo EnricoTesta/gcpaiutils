@@ -437,9 +437,13 @@ def algorithm_routing(deployment_config, algorithm_space, **kwargs):
     return tasks_to_trigger
 
 
-def metadata_check(deployment_config, trained_model_metadata_path, current_data_metadata_path, **kwargs):
+def metadata_check(deployment_config, **kwargs):
 
     _globals = get_deployment_config(deployment_config)
+
+    trained_model_metadata_path = f"gs://{GLOBALS['CORE_BUCKET_NAME']}/{get_user(kwargs)}/ACTIVE_MODELS/{get_problem(kwargs)}/METADATA/"
+    current_data_metadata_path = f"gs://{GLOBALS['CORE_BUCKET_NAME']}/{get_user(kwargs)}/{get_problem(kwargs)}/METADATA/"
+
     with open(trained_model_metadata_path, 'r') as f:
         trained_model_metadata = safe_load(f)
     with open(current_data_metadata_path, 'r') as f:
