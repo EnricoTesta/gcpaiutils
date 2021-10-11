@@ -167,9 +167,7 @@ def selection_from_folder(deployment_config, selector_class_dict=None, **kwargs)
         rmtree(tmp_dir_name)
 
     # make sure selector_class_dict is imported in this module
-    root_dest_uri = "gs://{}/{}/{}/{}/SELECTOR/".format(_globals["MODEL_BUCKET_NAME"],
-                                                        get_user(kwargs), get_problem(kwargs),
-                                                        get_version(kwargs))
+    root_dest_uri = f"gs://{_globals['MODEL_BUCKET_NAME']}/{get_user(kwargs)}/SELECTOR/{get_problem(kwargs)}/"
 
     selected_info = {}
     for key, d in selector_class_dict.items():
@@ -236,9 +234,8 @@ def selection(deployment_config, train_task_ids=None, selector_class_dict=None, 
         rmtree(tmp_dir_name)
 
     # make sure selector_class_dict is imported in this module
-    root_dest_uri = "gs://{}/{}/{}/{}/SELECTOR/".format(_globals["MODEL_BUCKET_NAME"],
-                                                        get_user(kwargs), get_problem(kwargs),
-                                                        get_version(kwargs))
+    root_dest_uri = f"gs://{_globals['MODEL_BUCKET_NAME']}/{get_user(kwargs)}/SELECTOR/{get_problem(kwargs)}/"
+
     selected_info = {}
     for key, d in selector_class_dict.items():
         S = d['selector'](deployment_config=deployment_config, model_dir=info_dir, evaluation_metric=evaluation_metric,
@@ -462,9 +459,8 @@ def data_evaluation(deployment_config, **kwargs):
 
     _globals = get_deployment_config(deployment_config)
     data_path = kwargs['task_instance'].xcom_pull(task_ids='retrieve_params', key='data_uri')
-    model_dir = "gs://{}/{}/{}/{}/METADATA/".format(_globals["MODEL_BUCKET_NAME"],
-                                                       get_user(kwargs), get_problem(kwargs),
-                                                       get_version(kwargs))
+    model_dir = "gs://{}/{}/{}/METADATA/".format(_globals["MODEL_BUCKET_NAME"],
+                                                       get_user(kwargs), get_problem(kwargs))
 
     preprocess_input = {'trainFiles': data_path,
                         'modelDir': model_dir,
