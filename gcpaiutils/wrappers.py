@@ -459,14 +459,12 @@ def metadata_check(deployment_config, **kwargs):
             assert(Counter(trained_model_metadata[attribute]) == Counter(current_data_metadata[attribute]))
 
 
-def data_evaluation(deployment_config, **kwargs):
+def data_evaluation(deployment_config, data_uri, user, problem):
 
     _globals = get_deployment_config(deployment_config)
-    data_path = kwargs['task_instance'].xcom_pull(task_ids='retrieve_params', key='data_uri')
-    model_dir = "gs://{}/{}/{}/METADATA/".format(_globals["MODEL_BUCKET_NAME"],
-                                                       get_user(kwargs), get_problem(kwargs))
+    model_dir = "gs://{}/{}/{}/METADATA/".format(_globals["MODEL_BUCKET_NAME"], user, problem)
 
-    preprocess_input = {'trainFiles': data_path,
+    preprocess_input = {'trainFiles': data_uri,
                         'modelDir': model_dir,
                         'scaleTier': 'CUSTOM',
                         'masterType': 'n1-highmem-8' # 8 vCPUs / 52 GB RAM  --- 'n1-highmem-4'  # 4 vCPUs / 26 GB RAM
@@ -475,9 +473,8 @@ def data_evaluation(deployment_config, **kwargs):
     S = PreprocessJobSpecHandler(deployment_config=deployment_config,
                                  algorithm='data_evaluator',
                                  append_job_id=False,  # ensure you overwrite same destination
-                                 inputs=preprocess_input, request_ids={'user': get_user(kwargs),
-                                                                       'problem': get_problem(kwargs),
-                                                                       'version': get_version(kwargs)})
+                                 inputs=preprocess_input,
+                                 request_ids={'user': user, 'problem': problem, 'version': ''})
     S.create_job_specs()
     T = PreprocessJobHandler(deployment_config=deployment_config, job_executor='mlapi')
     T.submit_job(S.job_specs)
