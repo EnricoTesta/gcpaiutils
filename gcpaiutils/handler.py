@@ -27,7 +27,10 @@ class JobHandler:
         try:
             self._credentials = Credentials.from_service_account_file(self._globals['AI_PLATFORM_SA'])
         except:
-            self._credentials = Credentials.from_service_account_file(self._globals['GCP_AI_PLATFORM_SA'])
+            try:
+                self._credentials = Credentials.from_service_account_file(self._globals['GCP_AI_PLATFORM_SA'])
+            except KeyError:
+                self._credentials = None
         self.job_executor = job_executor
         self.mlapi = None
         self.job_request = None
