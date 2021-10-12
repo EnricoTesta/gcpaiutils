@@ -459,7 +459,7 @@ def metadata_check(deployment_config, **kwargs):
             assert(Counter(trained_model_metadata[attribute]) == Counter(current_data_metadata[attribute]))
 
 
-def data_evaluation(deployment_config, data_uri, user, problem):
+def data_evaluation(deployment_config, data_uri, user, problem, **kwargs):
 
     _globals = get_deployment_config(deployment_config)
     model_dir = "gs://{}/{}/{}/METADATA/".format(_globals["MODEL_BUCKET_NAME"], user, problem)
