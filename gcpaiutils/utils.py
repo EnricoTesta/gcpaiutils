@@ -145,10 +145,8 @@ def get_gcs_credentials(_globals):
 def get_metadata(_globals, dag_type, kwargs):
 
     # Define metadata remote location & setup local dir
-    metadata_uri = "{}/{}/{}/METADATA/{}/metadata.json".format(get_user(kwargs),
-                                                               get_problem(kwargs),
-                                                               get_version(kwargs),
-                                                               dag_type)
+    metadata_uri = f"{get_user(kwargs)}/{get_problem(kwargs)}/METADATA/metadata.json"
+
     tmp_metadata_dir = make_temp_dir(os.getcwd())
     metadata_local_filename = os.path.join(tmp_metadata_dir, 'metadata.json')
 
