@@ -139,7 +139,10 @@ def get_gcs_credentials(_globals):
     try:
         return Credentials.from_service_account_file(_globals['AI_PLATFORM_SA'])
     except FileNotFoundError:
-        return Credentials.from_service_account_file(_globals['GCP_AI_PLATFORM_SA'])
+        try:
+            return Credentials.from_service_account_file(_globals['GCP_AI_PLATFORM_SA'])
+        except:
+            return None
 
 
 def get_metadata(_globals, dag_type, kwargs):
