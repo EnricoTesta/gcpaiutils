@@ -138,7 +138,7 @@ def get_version(kwargs):
 def get_gcs_credentials(_globals):
     try:
         return Credentials.from_service_account_file(_globals['AI_PLATFORM_SA'])
-    except FileNotFoundError:
+    except:
         try:
             return Credentials.from_service_account_file(_globals['GCP_AI_PLATFORM_SA'])
         except:
