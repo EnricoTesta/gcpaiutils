@@ -113,7 +113,7 @@ def get_hardware_config(atom=None, data_size=None, scoring=False):
         elif data_size <= 3:
             return "n1-standard-8"
         elif data_size <= 8:
-            return "n1-highmem-8"
+            return "n1-highmem-16"
         else:
             raise (ValueError, "Data size not handled: %s GB." % data_size)
     elif atom in ["class_ffnn"]:
