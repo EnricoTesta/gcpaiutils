@@ -599,8 +599,14 @@ def notify_dag_status(deployment_config, dag_type, status, **kwargs):
         json.dump('0', f)
 
     gcs_destination_bucket = gcs_client.get_bucket(_globals["MODEL_BUCKET_NAME"])
-    gcs_destination_blob = '/'.join([get_user(kwargs), get_problem(kwargs), get_version(kwargs), "STATUS",
-                                     dag_type, local_status_file.split("/")[-1]])
+    if dag_type == 'TRAIN':
+        gcs_destination_blob = '/'.join([get_user(kwargs), "ACTIVE_MODELS", get_problem(kwargs)
+                                            , "STATUS", local_status_file.split("/")[-1]])
+    elif dag_type == 'SCORE':
+        gcs_destination_blob = '/'.join([get_user(kwargs), get_problem(kwargs)
+                                        , "STATUS", local_status_file.split("/")[-1]])
+    else:
+        raise ValueError(f"dag_type {dag_type} not recognized. Must be either TRAIN or SCORE.")
     b = storage.blob.Blob(gcs_destination_blob, gcs_destination_bucket)
     b.upload_from_filename(local_status_file, client=gcs_client)
 
