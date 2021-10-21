@@ -580,8 +580,8 @@ def clear_dag_status(deployment_config, dag_type, conf, **kwargs):
     gcs_client = storage.Client(project=_globals['PROJECT_ID'], credentials=gcs_credentials)
 
     gcs_blob_list = list(gcs_client.list_blobs(bucket_or_name=_globals["MODEL_BUCKET_NAME"],
-                                               prefix=os.path.join(conf['user'], conf['problem'],
-                                                                   conf['version'], "STATUS", dag_type)))
+                                               prefix=os.path.join(conf['user'], conf['problem'], "STATUS")))
+
     for blob in gcs_blob_list:
         blob.delete()
 
