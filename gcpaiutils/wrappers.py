@@ -560,8 +560,8 @@ def wait_dag_status(deployment_config, dag_type, conf, **kwargs):
     while True:
         sleep(60)
         gcs_blob_list = list(gcs_client.list_blobs(bucket_or_name=_globals["MODEL_BUCKET_NAME"],
-                                                   prefix=os.path.join(conf['user'], conf['problem'],
-                                                                       conf['version'], "STATUS", dag_type)))
+                                                   prefix=os.path.join(conf['user'], conf['problem'], "STATUS")))
+
         if len(gcs_blob_list) > 1:
             raise ValueError("Found more than one status file")
         elif len(gcs_blob_list) == 1:
