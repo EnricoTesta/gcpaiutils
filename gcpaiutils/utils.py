@@ -2,6 +2,8 @@ from yaml import safe_load
 from jinja2 import Template
 from random import choice
 from shutil import rmtree
+from pandas import read_csv
+from tempfile import TemporaryDirectory
 from google.cloud import storage
 import string
 import logging
@@ -147,6 +149,26 @@ def get_gcs_credentials(_globals):
             return Credentials.from_service_account_file(_globals['GCP_AI_PLATFORM_SA'])
         except:
             return None
+
+
+def get_model_metadata(_globals, kwargs):
+
+    # Define metadata remote location & setup local dir
+    model_metadata_uri = f"{get_user(kwargs)}/{get_problem(kwargs)}/"
+
+    with TemporaryDirectory as tmp_dir:
+        gcs_credentials = get_gcs_credentials(_globals)
+        gcs_client = storage.Client(project=_globals['PROJECT_ID'], credentials=gcs_credentials)
+        gcs_bucket = gcs_client.get_bucket(_globals["MODEL_BUCKET_NAME"])
+        blob_list = storage.list_blobs(bucket=gcs_bucket, prefix=model_metadata_uri)
+        trained_model_metadata = {}
+        for blob in blob_list:
+            if blob.name.startswith('featimp'): # assume all models have featimp
+                file_name = f"{tmp_dir}/{blob.name.split('/')[-1]}"
+                blob.download_to_filename(file_name, client=gcs_client)
+                trained_model_metadata[blob.name.split('/')[-1]] = read_csv(file_name)
+
+    return trained_model_metadata
 
 
 def get_metadata(_globals, dag_type, kwargs):
