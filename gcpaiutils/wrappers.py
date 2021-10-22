@@ -508,17 +508,17 @@ def metadata_check(deployment_config, information_loss_tolerance=0.1, **kwargs):
 
     # Check if metadata linked to trained models matches metadata from current data
     missing_features_pct = {}
-    for model_featimp in trained_model_metadata:
+    for key, model_featimp in trained_model_metadata.items():
         relevant_features = list(model_featimp.loc[model_featimp['feature_importance'] > 0]['feature_name'])
         missing_importance = 0
         for feature in relevant_features:
             if current_data_metadata['missing_data_rate'][feature] > 0:
                 missing_importance += model_featimp.loc[model_featimp['feature_name'] == feature]['feature_importance']
-        missing_features_pct[model_featimp.replace("featimp", "model").replace("csv", "pkl")] = missing_importance
+        missing_features_pct[key.replace("featimp", "model").replace("csv", "pkl")] = missing_importance
 
     data_consistent_models = []
     for model, pct in missing_features_pct.items():
-        if pct <= null_tolerance_threshold:
+        if pct <= information_loss_tolerance:
             data_consistent_models.append(model)
 
     kwargs['task_instance'].xcom_push(key='data_consistent_models', value=data_consistent_models)
