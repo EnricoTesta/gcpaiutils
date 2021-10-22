@@ -15,7 +15,8 @@ import os
 import json
 
 logger = logging.getLogger("OperatorsLogger")
-logging.getLogger("OperatorsLogger").setLevel(logging.INFO)
+logger.setLevel(logging.INFO)
+logger.addHandler(StreamHandler())
 
 TIME_INTERVAL = 60*1
 
