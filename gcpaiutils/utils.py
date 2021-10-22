@@ -160,7 +160,7 @@ def get_model_metadata(_globals, kwargs):
         gcs_credentials = get_gcs_credentials(_globals)
         gcs_client = storage.Client(project=_globals['PROJECT_ID'], credentials=gcs_credentials)
         gcs_bucket = gcs_client.get_bucket(_globals["MODEL_BUCKET_NAME"])
-        blob_list = storage.list_blobs(bucket=gcs_bucket, prefix=model_metadata_uri)
+        blob_list = gcs_bucket.list_blobs(prefix=model_metadata_uri)
         trained_model_metadata = {}
         for blob in blob_list:
             if blob.name.startswith('featimp'): # assume all models have featimp
