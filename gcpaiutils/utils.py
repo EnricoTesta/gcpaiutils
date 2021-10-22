@@ -160,10 +160,10 @@ def get_model_metadata(_globals, kwargs):
         gcs_credentials = get_gcs_credentials(_globals)
         gcs_client = storage.Client(project=_globals['PROJECT_ID'], credentials=gcs_credentials)
         gcs_bucket = gcs_client.get_bucket(_globals["MODEL_BUCKET_NAME"])
-        blob_list = gcs_bucket.list_blobs(prefix=model_metadata_uri)
+        blob_list = list(gcs_bucket.list_blobs(prefix=model_metadata_uri))
         trained_model_metadata = {}
         for blob in blob_list:
-            if blob.name.startswith('featimp'): # assume all models have featimp
+            if '/featimp_' in blob.name: # assume all models have featimp
                 file_name = f"{tmp_dir}/{blob.name.split('/')[-1]}"
                 blob.download_to_filename(file_name, client=gcs_client)
                 trained_model_metadata[blob.name.split('/')[-1]] = read_csv(file_name)
