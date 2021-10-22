@@ -350,6 +350,8 @@ def score(deployment_config, use_proba=None, **kwargs):
     gcs_bucket = gcs_client.get_bucket(_globals["MODEL_BUCKET_NAME"])
     submitted_scoring_jobs = {}
     for strategy_name, value in selected_info.items():
+        if strategy_name != 'Top4MostStrata_StratifiedKFold':
+            continue # reduce scoring to relevant strategy
         for info in value:
 
             model_path = get_model_path_from_info_path(info)
