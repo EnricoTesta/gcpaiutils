@@ -14,7 +14,7 @@ from time import sleep
 import os
 import json
 
-logging.getLogger("OperatorsLogger")
+logger = logging.getLogger("OperatorsLogger")
 logging.getLogger("OperatorsLogger").setLevel(logging.INFO)
 
 TIME_INTERVAL = 60*1
@@ -325,6 +325,7 @@ def score(deployment_config, use_proba=None, **kwargs):
     # Get metadata file
     metadata = get_metadata(_globals, 'SCORE', kwargs)
     score_dir = kwargs['task_instance'].xcom_pull(task_ids='retrieve_params', key='data_uri')
+    data_consistent_models = kwargs['task_instance'].xcom_pull(task_ids='metadata_check', key='data_consistent_models')
 
     scoreInput = {
         "scoreDir": score_dir,
@@ -350,11 +351,16 @@ def score(deployment_config, use_proba=None, **kwargs):
     for strategy_name, value in selected_info.items():
         for info in value:
 
-            currentInput = scoreInput.copy()
             model_path = get_model_path_from_info_path(info)
+            logger.info(f"Model path: {algo}")
+            if model_path.split("/")[-1] not in data_consistent_models:
+                logger.info(f"Skipping model {model_path} because currert data is insufficient to yield useful predictions.")
+                continue # skip model if current available data is insufficient to yield useful predictions
+
+            currentInput = scoreInput.copy()
             algo = '_'.join(model_path.split("/")[0].split("_")[4:])
-            blobs = list(gcs_bucket.list_blobs(prefix=os.path.join(get_user(kwargs), get_problem(kwargs),
-                                               get_version(kwargs), "MODELS", model_path)))  # unique id
+            blobs = list(gcs_bucket.list_blobs(prefix=os.path.join(get_user(kwargs), "ACTIVE_MODELS",
+                                                                   get_problem(kwargs), model_path)))  # unique id
             if len(blobs) == 1:
                 # model is a file
                 currentInput["modelFile"] = os.path.join(_globals["MODEL_BUCKET_ADDRESS"], blobs[0].name)
@@ -363,24 +369,17 @@ def score(deployment_config, use_proba=None, **kwargs):
                 currentInput["modelFile"] = os.path.join(_globals["MODEL_BUCKET_ADDRESS"],
                                                          '/'.join(blobs[0].name.split("/")[0:-1]))
             else:
-                raise FileNotFoundError("Could not find any blob matching %s" % os.path.join(get_user(kwargs),
-                                                                                             get_problem(kwargs),
-                                                                                             get_version(kwargs),
-                                                                                             "MODELS",
-                                                                                             model_path))
-            currentInput["outputDir"] = "gs://{}/{}/{}/{}/RESULTS_STAGING/{}/{}/".format(_globals["MODEL_BUCKET_NAME"],
-                                                                                         get_user(kwargs),
-                                                                                         get_problem(kwargs),
-                                                                                         get_version(kwargs),
-                                                                                         strategy_name,
-                                                                                         model_path.split("/")[0])
+                raise FileNotFoundError("Could not find any blob matching %s" % os.path.join(model_path))
+
+            currentInput["outputDir"] = f"gs://{_globals['MODEL_BUCKET_NAME']}/{get_user(kwargs)}/{get_problem(kwargs)}/RESULTS_STAGING/{strategy_name}/{model_path.split('/')[0]}/"
+
             currentInput["masterType"] = get_hardware_config(atom=algo, data_size=metadata['size'], scoring=True)
 
             S = ScoreJobSpecHandler(algorithm=algo,
                                     deployment_config=deployment_config,
                                     inputs=currentInput, request_ids={'user': get_user(kwargs),
                                                                       'problem': get_problem(kwargs),
-                                                                      'version': get_version(kwargs)})
+                                                                      'version': ''})
             S.create_job_specs()
             T = ScoreJobHandler(deployment_config=deployment_config, job_executor='mlapi')
             T.submit_job(S.job_specs)
@@ -389,6 +388,9 @@ def score(deployment_config, use_proba=None, **kwargs):
                 logging.info("Score request successful: {}".format(S.job_specs['jobId']))
             else:
                 raise ValueError("Unable to submit score job.")
+
+    if not submitted_scoring_jobs:
+        raise ValueError("No jobs selected for scoring.")
 
     # Retrieve scoring
     status = poll(deployment_config, TIME_INTERVAL, submitted_scoring_jobs)
@@ -497,26 +499,29 @@ def algorithm_routing(deployment_config, algorithm_space, **kwargs):
     return tasks_to_trigger
 
 
-def metadata_check(deployment_config, **kwargs):
+def metadata_check(deployment_config, information_loss_tolerance=0.1, **kwargs):
 
     _globals = get_deployment_config(deployment_config)
 
-    trained_model_metadata_path = f"gs://{GLOBALS['CORE_BUCKET_NAME']}/{get_user(kwargs)}/ACTIVE_MODELS/{get_problem(kwargs)}/METADATA/"
-    current_data_metadata_path = f"gs://{GLOBALS['CORE_BUCKET_NAME']}/{get_user(kwargs)}/{get_problem(kwargs)}/METADATA/"
-
-    with open(trained_model_metadata_path, 'r') as f:
-        trained_model_metadata = safe_load(f)
-    with open(current_data_metadata_path, 'r') as f:
-        current_data_metadata = safe_load(f)
-
-    relevant_attributes = ['n_cols', 'column_names', 'column_types']
+    trained_model_metadata = get_model_metadata(_globals, model_metadata_dir, kwargs)
+    current_data_metadata = get_metadata(_globals, None, kwargs)
 
     # Check if metadata linked to trained models matches metadata from current data
-    for attribute in relevant_attributes:
-        if attribute == 'n_cols':
-            assert(trained_model_metadata[attribute] == current_data_metadata[attribute])
-        else:
-            assert(Counter(trained_model_metadata[attribute]) == Counter(current_data_metadata[attribute]))
+    missing_features_pct = {}
+    for model_featimp in trained_models_metadata:
+        relevant_features = list(model_featimp.loc[model_featimp['feature_importance'] > 0]['feature_name'])
+        missing_importance = 0
+        for feature in relevant_features:
+            if current_data_metadata['missing_data_rate'][feature] > 0:
+                missing_importance += model_featimp.loc[model_featimp['feature_name'] == feature]['feature_importance']
+        missing_features_pct[model_featimp.replace("featimp", "model").replace("csv", "pkl")] = missing_importance
+
+    data_consistent_models = []
+    for model, pct in missing_features_pct.items():
+        if pct <= null_tolerance_threshold:
+            data_consistent_models.append(model)
+
+    kwargs['task_instance'].xcom_push(key='data_consistent_models', value=data_consistent_models)
 
 
 def data_evaluation(deployment_config, data_uri, user, problem, **kwargs):
