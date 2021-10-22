@@ -503,7 +503,7 @@ def metadata_check(deployment_config, information_loss_tolerance=0.1, **kwargs):
 
     _globals = get_deployment_config(deployment_config)
 
-    trained_model_metadata = get_model_metadata(_globals, model_metadata_dir, kwargs)
+    trained_model_metadata = get_model_metadata(_globals, kwargs)
     current_data_metadata = get_metadata(_globals, None, kwargs)
 
     # Check if metadata linked to trained models matches metadata from current data
