@@ -355,7 +355,7 @@ def score(deployment_config, use_proba=None, **kwargs):
             model_path = get_model_path_from_info_path(info)
             logger.info(f"Model path: {algo}")
             if model_path.split("/")[-1] not in data_consistent_models:
-                logger.info(f"Skipping model {model_path} because currert data is insufficient to yield useful predictions.")
+                logger.warning(f"Skipping model {model_path.split('/')[-1]} because currert data is insufficient to yield useful predictions.")
                 continue # skip model if current available data is insufficient to yield useful predictions
 
             currentInput = scoreInput.copy()
