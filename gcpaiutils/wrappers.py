@@ -353,7 +353,7 @@ def score(deployment_config, use_proba=None, **kwargs):
         for info in value:
 
             model_path = get_model_path_from_info_path(info)
-            logger.info(f"Model path: {algo}")
+            logger.info(f"Model path: {model_path}")
             if model_path.split("/")[-1] not in data_consistent_models:
                 logger.warning(f"Skipping model {model_path.split('/')[-1]} because currert data is insufficient to yield useful predictions.")
                 continue # skip model if current available data is insufficient to yield useful predictions
@@ -515,7 +515,7 @@ def metadata_check(deployment_config, information_loss_tolerance=0.1, **kwargs):
         for feature in relevant_features:
             if current_data_metadata['missing_data_rate'][feature] > 0:
                 missing_importance += model_featimp.loc[model_featimp['feature_name'] == feature]['feature_importance']
-        missing_features_pct[key.replace("featimp", "model").replace("csv", "pkl")] = missing_importance
+        missing_features_pct[key.replace("featimp", "model").replace(".csv", "")] = missing_importance
 
     data_consistent_models = []
     for model, pct in missing_features_pct.items():
