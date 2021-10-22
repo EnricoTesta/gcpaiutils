@@ -154,7 +154,7 @@ def get_gcs_credentials(_globals):
 def get_model_metadata(_globals, kwargs):
 
     # Define metadata remote location & setup local dir
-    model_metadata_uri = f"{get_user(kwargs)}/{get_problem(kwargs)}/"
+    model_metadata_uri = f"{get_user(kwargs)}/ACTIVE_MODELS/{get_problem(kwargs)}/"
 
     with TemporaryDirectory as tmp_dir:
         gcs_credentials = get_gcs_credentials(_globals)
