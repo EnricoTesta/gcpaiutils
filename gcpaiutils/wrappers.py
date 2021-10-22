@@ -4,7 +4,7 @@ from gcpaiutils.postprocess import PostprocessJobHandler, PostprocessJobSpecHand
 from gcpaiutils.preprocess import PreprocessJobHandler, PreprocessJobSpecHandler
 from gcpaiutils.utils import get_model_path_from_info_path, get_deployment_config, get_hardware_config,\
     get_user, get_problem, get_version, get_gcs_credentials, make_temp_dir, get_job_assessment,\
-    get_selector, get_metadata
+    get_selector, get_metadata, get_model_metadata
 from googleapiclient import discovery
 from google.cloud import storage
 from shutil import rmtree
