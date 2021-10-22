@@ -508,7 +508,7 @@ def metadata_check(deployment_config, information_loss_tolerance=0.1, **kwargs):
 
     # Check if metadata linked to trained models matches metadata from current data
     missing_features_pct = {}
-    for model_featimp in trained_models_metadata:
+    for model_featimp in trained_model_metadata:
         relevant_features = list(model_featimp.loc[model_featimp['feature_importance'] > 0]['feature_name'])
         missing_importance = 0
         for feature in relevant_features:
