@@ -502,6 +502,23 @@ def algorithm_routing(deployment_config, algorithm_space, **kwargs):
     return tasks_to_trigger
 
 
+def clear_results(deployment_config, **kwargs):
+
+    _globals = get_deployment_config(deployment_config)
+    gcs_credentials = get_gcs_credentials(_globals)
+    gcs_client = storage.Client(project=_globals['PROJECT_ID'], credentials=gcs_credentials)
+
+    gcs_blob_list = list(gcs_client.list_blobs(bucket_or_name=_globals["MODEL_BUCKET_NAME"],
+                                               prefix=os.path.join(get_user(kwargs), get_problem(kwargs), "RESULTS_STAGING"))) + \
+                    list(gcs_client.list_blobs(bucket_or_name=_globals["MODEL_BUCKET_NAME"],
+                                               prefix=os.path.join(get_user(kwargs), get_problem(kwargs), "NEUTRALIZED_RESULTS_STAGING"))) + \
+                    list(gcs_client.list_blobs(bucket_or_name=_globals["MODEL_BUCKET_NAME"],
+                                               prefix=os.path.join(get_user(kwargs), get_problem(kwargs), "RESULTS")))
+
+    for blob in gcs_blob_list:
+        blob.delete()
+
+
 def metadata_check(deployment_config, information_loss_tolerance=0.1, **kwargs):
 
     _globals = get_deployment_config(deployment_config)
