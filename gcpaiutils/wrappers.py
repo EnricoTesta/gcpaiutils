@@ -374,7 +374,7 @@ def score(deployment_config, use_proba=None, **kwargs):
             else:
                 raise FileNotFoundError("Could not find any blob matching %s" % os.path.join(model_path))
 
-            currentInput["outputDir"] = f"gs://{_globals['MODEL_BUCKET_NAME']}/{get_user(kwargs)}/{get_problem(kwargs)}/RESULTS_STAGING/{strategy_name}/{model_path.split('/')[0]}/"
+            currentInput["outputDir"] = f"gs://{_globals['MODEL_BUCKET_NAME']}/{get_user(kwargs)}/{get_problem(kwargs)}/RESULTS_STAGING/{strategy_name}/{model_path.split('/')[0]}/{model_path.split('.')[-1]}/"
 
             currentInput["masterType"] = get_hardware_config(atom=algo, data_size=metadata['size'], scoring=True)
 
