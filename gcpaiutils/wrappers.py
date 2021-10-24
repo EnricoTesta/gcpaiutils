@@ -430,8 +430,7 @@ def aggregate(deployment_config, neutralized=False, **kwargs):
     root_output_dir = kwargs['task_instance'].xcom_pull(task_ids='retrieve_params', key='output_uri')
     staging_dir = "RESULTS_STAGING"
     if neutralized:
-        root_output_dir = "/".join(["/".join(root_output_dir.split("/")[0:-2]),
-                                   "NEUTRALIZED_" + root_output_dir.split("/")[-2]]) + "/"
+        root_output_dir = "/".join(["/".join(root_output_dir.split("/")[0:-3]), "NEUTRALIZED_RESULTS" + "/"])
         staging_dir = "NEUTRALIZED_RESULTS_STAGING"
 
     submitted_postprocess_jobs_list = []
@@ -442,20 +441,14 @@ def aggregate(deployment_config, neutralized=False, **kwargs):
 
             current_score_input = scoreInput.copy()
 
-            current_score_input["scoreDir"] = "gs://{}/{}/{}/{}/{}/{}/".format(_globals["MODEL_BUCKET_NAME"],
-                                                                                            get_user(kwargs),
-                                                                                            get_problem(kwargs),
-                                                                                            get_version(kwargs),
-                                                                                            staging_dir,
-                                                                                         strategy_name)
-
+            current_score_input["scoreDir"] = f"gs://{_globals['MODEL_BUCKET_NAME']}/{get_user(kwargs)}/{get_problem(kwargs)}/{staging_dir}/{strategy_name}/"
             current_score_input["outputDir"] = root_output_dir + strategy_name + "/"
 
             S = PostprocessJobSpecHandler(algorithm='aggregator',
                                           deployment_config=deployment_config,
                                           inputs=current_score_input, request_ids={'user': get_user(kwargs),
                                                                                    'problem': get_problem(kwargs),
-                                                                                   'version': get_version(kwargs)})
+                                                                                   'version': 'eternal'})
             S.create_job_specs()
             T = PostprocessJobHandler(deployment_config=deployment_config, job_executor='mlapi')
             T.submit_job(S.job_specs)
