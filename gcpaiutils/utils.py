@@ -78,7 +78,7 @@ def get_hardware_config(atom=None, data_size=None, scoring=False):
     :param data_size:
     :return:
     """
-    if atom == "cusreg_lgbm" and scoring is True:
+    if atom in ["cusreg_lgbm", "class_lgbm"] and scoring is True:
         if data_size <= 0.1:
             return "n1-standard-8"
         elif data_size <= 1:
