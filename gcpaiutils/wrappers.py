@@ -446,11 +446,14 @@ def aggregate(deployment_config, neutralized=False, **kwargs):
             current_score_input["scoreDir"] = f"gs://{_globals['MODEL_BUCKET_NAME']}/{get_user(kwargs)}/{get_problem(kwargs)}/{staging_dir}/{strategy_name}/"
             current_score_input["outputDir"] = root_output_dir + strategy_name + "/"
 
+            version = 'eternal'
+            if neutralized:
+                version = 'eternalneutralized'
             S = PostprocessJobSpecHandler(algorithm='aggregator',
                                           deployment_config=deployment_config,
                                           inputs=current_score_input, request_ids={'user': get_user(kwargs),
                                                                                    'problem': get_problem(kwargs),
-                                                                                   'version': 'eternal'})
+                                                                                   'version': version})
             S.create_job_specs()
             T = PostprocessJobHandler(deployment_config=deployment_config, job_executor='mlapi')
             T.submit_job(S.job_specs)
