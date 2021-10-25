@@ -430,7 +430,7 @@ def aggregate(deployment_config, neutralized=False, **kwargs):
     root_output_dir = kwargs['task_instance'].xcom_pull(task_ids='retrieve_params', key='output_uri')
     staging_dir = "RESULTS_STAGING"
     if neutralized:
-        root_output_dir = root_ouput_dir.replace("RESULTS", "NEUTRALIZED_RESULTS")
+        root_output_dir = root_output_dir.replace("RESULTS", "NEUTRALIZED_RESULTS")
         staging_dir = "NEUTRALIZED_RESULTS_STAGING"
 
     submitted_postprocess_jobs_list = []
