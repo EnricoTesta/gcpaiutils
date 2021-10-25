@@ -511,7 +511,11 @@ def clear_results(deployment_config, **kwargs):
                     list(gcs_client.list_blobs(bucket_or_name=_globals["MODEL_BUCKET_NAME"],
                                                prefix=os.path.join(get_user(kwargs), get_problem(kwargs), "NEUTRALIZED_RESULTS_STAGING"))) + \
                     list(gcs_client.list_blobs(bucket_or_name=_globals["MODEL_BUCKET_NAME"],
-                                               prefix=os.path.join(get_user(kwargs), get_problem(kwargs), "RESULTS")))
+                                               prefix=os.path.join(get_user(kwargs), get_problem(kwargs), "RESULTS"))) + \
+                    list(gcs_client.list_blobs(bucket_or_name=_globals["MODEL_BUCKET_NAME"],
+                                               prefix=os.path.join(get_user(kwargs), get_problem(kwargs), "UPLOAD"))) + \
+                    list(gcs_client.list_blobs(bucket_or_name=_globals["MODEL_BUCKET_NAME"],
+                                               prefix=os.path.join(get_user(kwargs), get_problem(kwargs), "NEUTRALIZED_UPLOAD")))
 
     for blob in gcs_blob_list:
         blob.delete()
