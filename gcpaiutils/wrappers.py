@@ -435,6 +435,8 @@ def aggregate(deployment_config, neutralized=False, **kwargs):
 
     submitted_postprocess_jobs_list = []
     for strategy_name, value in selected_info.items():
+        if strategy_name != 'Top4MostStrata_StratifiedKFold':
+            continue # reduce scoring to relevant strategy
         if not value['selection']:
             continue
         if value['aggregation'] == 'average':
