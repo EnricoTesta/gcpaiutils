@@ -87,7 +87,7 @@ def get_hardware_config(atom=None, data_size=None, scoring=False):
             return "n1-highmem-8"
         else:
             raise(ValueError, "Data size not handled: %s GB." % data_size)
-    elif atom == "aggregator" and scoring is True:
+    elif atom == "aggregator":
         return "n1-highmem-2"
     elif atom in ["class_skl_logreg", "class_lda", "class_qda"]:
         if data_size <= 0.1:
