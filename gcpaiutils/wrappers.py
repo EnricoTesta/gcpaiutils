@@ -79,7 +79,8 @@ def train(deployment_config, atom=None, atom_params=None, hyperspace=None, **kwa
     :return:
     """
     _globals = get_deployment_config(deployment_config)
-    hypertune = hyperspace is not None
+    use_hyperspace = kwargs['task_instance'].xcom_pull(task_ids='retrieve_params', key='use_hyperspace')
+    hypertune = hyperspace is not None and use_hyperspace == 'True'
     model_dir = f"gs://{_globals['MODEL_BUCKET_NAME']}/{get_user(kwargs)}/ACTIVE_MODELS/{get_problem(kwargs)}/"
     train_files = kwargs['task_instance'].xcom_pull(task_ids='retrieve_params', key='data_uri')
 
@@ -90,6 +91,7 @@ def train(deployment_config, atom=None, atom_params=None, hyperspace=None, **kwa
     }
 
     # Add user-specified parameters
+    atom_params = kwargs['task_instance'].xcom_pull(task_ids='retrieve_params', key='atom_params')
     if isinstance(atom_params, dict):
         trainingInput['args'] = []
         for k, v in atom_params.items():
@@ -99,7 +101,11 @@ def train(deployment_config, atom=None, atom_params=None, hyperspace=None, **kwa
     metadata = get_metadata(_globals, 'TRAIN', kwargs)
 
     submitted_jobs = []
-    trainingInput["masterType"] = get_hardware_config(atom=atom, data_size=metadata['size'], scoring=False)
+    hardware_config = kwargs['task_instance'].xcom_pull(task_ids='retrieve_params', key='hardware_config')
+    if hardware_config is None:
+        trainingInput["masterType"] = get_hardware_config(atom=atom, data_size=metadata['size'], scoring=False)
+    else:
+        trainingInput["masterType"] = hardware_config
 
     if hypertune:
         trainingInput["hyperparameters"] = hyperspace[atom]
