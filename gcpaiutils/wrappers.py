@@ -92,7 +92,7 @@ def train(deployment_config, atom=None, atom_params=None, hyperspace=None, **kwa
 
     # Add user-specified parameters
     atom_params = kwargs['task_instance'].xcom_pull(task_ids='retrieve_params', key='atom_params')
-    if isinstance(atom_params, dict):
+    if isinstance(atom_params, dict) and 'dummy' not in atom: # exclude configuration from dummy classifier
         trainingInput['args'] = []
         for k, v in atom_params.items():
             trainingInput['args'] += [k, str(v)]
@@ -102,7 +102,7 @@ def train(deployment_config, atom=None, atom_params=None, hyperspace=None, **kwa
 
     submitted_jobs = []
     hardware_config = kwargs['task_instance'].xcom_pull(task_ids='retrieve_params', key='hardware_config')
-    if hardware_config is None:
+    if hardware_config is None or 'dummy' in atom:
         trainingInput["masterType"] = get_hardware_config(atom=atom, data_size=metadata['size'], scoring=False)
     else:
         trainingInput["masterType"] = hardware_config
